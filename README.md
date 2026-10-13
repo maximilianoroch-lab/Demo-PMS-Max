@@ -189,3 +189,8 @@ Fix de arranque en Streamlit: `apply_analysis_context()` ahora se define antes d
 ## Demo PMS Max v2
 - Diversificación: nuevo cuadro `ETF vs resto de cartera` junto a `Cripto vs cartera convencional`.
 - Barras de composición, región, sector, riesgo y custodia ordenadas visualmente de mayor a menor.
+
+## Demo PMS Max v3
+- En Diversificación, el cuadro de ETFs pasa de donut a barras/progreso tipo `ETFs principales`.
+- ETFs ordenados de mayor a menor por valor.
+- GLD se incluye como ETF por vehículo, aunque permanece Oro en la composición principal.
