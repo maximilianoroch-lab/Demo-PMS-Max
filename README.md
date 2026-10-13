@@ -185,3 +185,7 @@ Fix de arranque en Streamlit: `apply_analysis_context()` ahora se define antes d
 - Pesos, porcentajes, precios unitarios y variaciones se mantienen.
 - El Asesor IA recibe únicamente los valores demo transformados.
 - Puede agregarse `DEMO_ACCESS_CODE` en Streamlit Secrets para limitar acceso.
+
+## Demo PMS Max v2
+- Diversificación: nuevo cuadro `ETF vs resto de cartera` junto a `Cripto vs cartera convencional`.
+- Barras de composición, región, sector, riesgo y custodia ordenadas visualmente de mayor a menor.
