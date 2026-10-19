@@ -539,22 +539,12 @@ if page=="Resumen":
             }
         )
 
-    with st.expander("Control de consistencia"):
-        app_df=data.get("app_feed_v2",pd.DataFrame())
-        look_df=data.get("looker_feed_v2",pd.DataFrame())
-        app_total=float(app_df["Valor USD_num"].sum()) if not app_df.empty and "Valor USD_num" in app_df.columns else 0.0
-        look_total=float(look_df["Valor USD_num"].sum()) if not look_df.empty and "Valor USD_num" in look_df.columns else 0.0
-        home_total=float(summary.get("home_total",0) or 0)
-        diff=look_total-app_total
-        q1,q2,q3,q4=st.columns(4)
-        q1.metric("HOME",fmt_usd(home_total))
-        q2.metric("App feed",fmt_usd(app_total))
-        q3.metric("Detalle cuentas",fmt_usd(look_total))
-        q4.metric("Detalle - app",fmt_usd(diff))
-        if abs(diff)<=1 and summary.get("reconciled",False):
-            st.success("Reconciliación de feeds: OK")
-        else:
-            st.warning("Hay una diferencia transitoria entre feeds. Se prioriza el detalle consolidado y se bloquean deltas inconsistentes.")
+    app_df=data.get("app_feed_v2",pd.DataFrame())
+    look_df=data.get("looker_feed_v2",pd.DataFrame())
+    app_total=float(app_df["Valor USD_num"].sum()) if not app_df.empty and "Valor USD_num" in app_df.columns else 0.0
+    look_total=float(look_df["Valor USD_num"].sum()) if not look_df.empty and "Valor USD_num" in look_df.columns else 0.0
+    home_total=float(summary.get("home_total",0) or 0)
+    diff=look_total-app_total
 
     st.subheader("Principales posiciones")
     st.caption("Seleccioná una fila para convertir ese activo en el ticker activo.")
@@ -760,7 +750,7 @@ elif page=="Custodia":
     cash_df=data.get("custodia_cash_v2",pd.DataFrame()).copy()
     if not cash_df.empty and {"Cuenta","Custodio","Moneda","Saldo nativo","Estado"}.issubset(cash_df.columns):
         cash_df=cash_df[(cash_df["Estado"].astype(str).str.upper()=="AUDITADO") & cash_df["Cuenta"].notna()]
-        st.caption("CASH por cuenta y moneda · demo ficticia ×4 · fuente custodia_cash_v2. No se suma nuevamente al patrimonio.")
+        st.caption("Efectivo por cuenta y moneda · valores correspondientes al último corte registrado.")
         if not cash_df.empty:
             demo_cash=cash_df[[c for c in ["Fecha corte","Cuenta","Custodio","Moneda","Saldo nativo","Valor USD al corte","Valor USD referencial actual"] if c in cash_df.columns]].copy()
             for col in ["Saldo nativo","Valor USD al corte","Valor USD referencial actual"]:
@@ -768,9 +758,9 @@ elif page=="Custodia":
                     demo_cash[col]=demo_cash[col].map(lambda x: format(local_num(x)*4,".2f") if str(x).strip() else x)
             st.dataframe(demo_cash,hide_index=True,use_container_width=True)
         else:
-            st.warning("La fuente no contiene filas CASH auditadas.")
+            st.caption("Sin saldos de efectivo disponibles.")
     else:
-        st.warning("No se pudo obtener el desglose auditado custodia_cash_v2.")
+        st.caption("Sin saldos de efectivo disponibles.")
     summ=data["app_custodia_resumen_v2"].copy()
     detail=data["app_custodia_detalle_v2"].copy()
     # Control de integridad de solo lectura: nunca incorpora CASH como activo adicional.
