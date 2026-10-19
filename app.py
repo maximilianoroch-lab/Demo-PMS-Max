@@ -765,7 +765,7 @@ elif page=="Custodia":
             demo_cash=cash_df[[c for c in ["Fecha corte","Cuenta","Custodio","Moneda","Saldo nativo","Valor USD al corte","Valor USD referencial actual"] if c in cash_df.columns]].copy()
             for col in ["Saldo nativo","Valor USD al corte","Valor USD referencial actual"]:
                 if col in demo_cash:
-                    demo_cash[col]=demo_cash[col].map(lambda x: format(parse_num(x)*4,".2f") if str(x).strip() else x)
+                    demo_cash[col]=demo_cash[col].map(lambda x: format(local_num(x)*4,".2f") if str(x).strip() else x)
             st.dataframe(demo_cash,hide_index=True,use_container_width=True)
         else:
             st.warning("La fuente no contiene filas CASH auditadas.")
