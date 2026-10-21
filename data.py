@@ -60,7 +60,6 @@ def normalize(name,df):
 
     # Escalado de compatibilidad SOLO en demo_legacy_scaled.
     # En modo independent los valores se leen sin transformar.
-    # cantidades, valores monetarios e impactos en USD.
     demo_cols = [
         "Valor USD_num","Valor total USD_num","Impacto USD_num",
         "Valor ref USD_num","Cantidad_num","Sector Valor USD_num"
@@ -72,8 +71,13 @@ def normalize(name,df):
 
 def load_all_data(sid):
     out={}
+    history_optional = PORTFOLIO.get("history_mode") == "none"
+    optional_feeds = {"snapshot_series_v2", "dashboard_evolucion_v2"} if history_optional else set()
     for name,rg in FEEDS.items():
         sheet="app_feed_v2" if name in ("app_home","app_banner") else name
+        if name in optional_feeds:
+            out[name]=pd.DataFrame()
+            continue
         r=requests.get(_url(sid,sheet,rg),timeout=15);r.raise_for_status()
         out[name]=normalize(name,pd.read_csv(StringIO(r.text)))
     # Only Demo: display fictitious account identifiers. Backend accounting keys

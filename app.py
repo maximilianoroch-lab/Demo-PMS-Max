@@ -6,7 +6,6 @@ import plotly.express as px
 from data import load_all_data, portfolio_summary, enrich_positions, quote_text
 from portfolio_config import PORTFOLIO
 from advisor import ask_advisor, build_action_prompt, compare_companies_structured
-from portfolio_config import PORTFOLIO
 
 st.set_page_config(page_title=PORTFOLIO["app_name"], page_icon="📊", layout="wide")
 
