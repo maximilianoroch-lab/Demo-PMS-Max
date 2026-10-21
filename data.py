@@ -104,7 +104,8 @@ def _alias_demo_account(value,alias):
     if pd.isna(value):return value
     s=str(value)
     for technical,display in sorted(alias.items(),key=lambda kv:len(kv[0]),reverse=True):
-        s=s.replace(technical,display)
+        import re
+        s=re.sub(r"(?<![\\w])"+re.escape(technical)+r"(?![\\w])",lambda _:display,s)
     return s
 
 def _firstcol_map(df):
