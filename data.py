@@ -6,7 +6,14 @@ from portfolio_config import PORTFOLIO
 
 # Modo transitorio: solo la cartera ficticia actual utiliza el escalado.
 # Una cartera empresarial independiente se lee tal como figure en su propia base.
-DEMO_MULTIPLIER = float(PORTFOLIO.get("legacy_value_multiplier", 1.0)) if PORTFOLIO.get("data_mode") == "demo_legacy_scaled" else 1.0
+DATA_MODE = PORTFOLIO.get("data_mode", "independent")
+if DATA_MODE not in ("demo_legacy_scaled", "independent"):
+    raise ValueError("Modo de datos inválido. Usar demo_legacy_scaled o independent")
+if PORTFOLIO.get("history_mode", "auto") not in ("auto", "none", "available"):
+    raise ValueError("history_mode inválido")
+DEMO_MULTIPLIER = float(PORTFOLIO.get("legacy_value_multiplier", 1.0)) if DATA_MODE == "demo_legacy_scaled" else 1.0
+if DEMO_MULTIPLIER <= 0:
+    raise ValueError("El multiplicador debe ser positivo")
 
 FEEDS={
 "looker_feed_v2":"A1:T2000","app_feed_v2":"A1:T67","app_home":"A69:F77","app_banner":"A80:D89",
