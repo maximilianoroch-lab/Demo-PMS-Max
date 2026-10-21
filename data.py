@@ -80,7 +80,7 @@ def load_all_data(sid):
         for sheet_name,df in out.items():
             if sheet_name=="cuentas_demo" or df.empty:continue
             for col in df.columns:
-                if col in ("Cuenta","Cuentas") or __import__("re").fullmatch(r"Cuenta \\d+",str(col)):
+                if col in ("Cuenta","Cuentas") or __import__("re").fullmatch(r"Cuenta \d+",str(col)):
                     df[col]=df[col].map(lambda x: _alias_demo_account(x,alias))
     return out
 
