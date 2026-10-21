@@ -4,6 +4,7 @@ import pandas as pd
 import plotly.express as px
 
 from data import load_all_data, portfolio_summary, enrich_positions, quote_text
+from portfolio_config import PORTFOLIO
 from advisor import ask_advisor, build_action_prompt, compare_companies_structured
 from portfolio_config import PORTFOLIO
 
@@ -16,7 +17,7 @@ except Exception:
     _demo_code = ""
 if _demo_code and not st.session_state.get("demo_access_ok",False):
     st.title("DEMO PMS Max")
-    st.caption("Datos ficticios · valores y cantidades escalados x4")
+    st.caption("DEMO · datos de demostración" if PORTFOLIO.get("data_mode") == "demo_legacy_scaled" else "Cartera independiente")
     _entered = st.text_input("Código de acceso", type="password")
     if st.button("Ingresar"):
         if _entered == _demo_code:
@@ -85,7 +86,7 @@ def apply_analysis_context(df):
 with st.sidebar:
     st.title(PORTFOLIO["display_name"])
     st.caption("Cockpit · análisis + asesor IA")
-    st.info("DEMO · datos ficticios · valores x4")
+    st.info("DEMO · datos de demostración" if PORTFOLIO.get("data_mode") == "demo_legacy_scaled" else "Cartera independiente")
     st.markdown("### Dashboard")
     page=st.radio(
         "Dashboard",
