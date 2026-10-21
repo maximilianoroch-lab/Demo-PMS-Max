@@ -15,7 +15,7 @@ try:
 except Exception:
     _demo_code = ""
 if _demo_code and not st.session_state.get("demo_access_ok",False):
-    st.title("Demo PMS Bersoch")
+    st.title("DEMO PMS Max")
     st.caption("Datos ficticios · valores y cantidades escalados x4")
     _entered = st.text_input("Código de acceso", type="password")
     if st.button("Ingresar"):
@@ -516,7 +516,7 @@ def render_company_comparison(result):
 
 st.title(page)
 if page in ["Resumen","Diversificación","Evolución","Riesgo","Custodia","Posiciones"]:
-    st.caption("Dashboard analítico de PMS Bersoch · navegación, filtros, drill-down y contexto compartido")
+    st.caption("Dashboard analítico de PMS Max · navegación, filtros, drill-down y contexto compartido")
 
 if page=="Resumen":
     render_global_context_banner()
@@ -1003,7 +1003,7 @@ elif page=="Posiciones":
 
 elif page=="Comparar":
     st.subheader("Comparar de empresas")
-    st.caption("Herramienta analítica independiente del chat. Usa datos externos actuales y contexto de PMS Bersoch.")
+    st.caption("Herramienta analítica independiente del chat. Usa datos externos actuales y contexto de PMS Max.")
     render_active_context()
 
     c1,c2=st.columns(2)
