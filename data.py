@@ -2,7 +2,11 @@
 from io import StringIO
 import requests, pandas as pd
 
-DEMO_MULTIPLIER = 4.0
+from portfolio_config import PORTFOLIO
+
+# Modo transitorio: solo la cartera ficticia actual utiliza el escalado.
+# Una cartera empresarial independiente se lee tal como figure en su propia base.
+DEMO_MULTIPLIER = float(PORTFOLIO.get("legacy_value_multiplier", 1.0)) if PORTFOLIO.get("data_mode") == "demo_legacy_scaled" else 1.0
 
 FEEDS={
 "looker_feed_v2":"A1:T2000","app_feed_v2":"A1:T67","app_home":"A69:F77","app_banner":"A80:D89",
@@ -54,7 +58,8 @@ def normalize(name,df):
         add_num(df,"Cantidad cuentas","Cantidad cuentas_num")
         if "Peso cartera_num" not in df:add_num(df,"Peso cartera","Peso cartera_num",True)
 
-    # Demo PMS Max: mantiene composición y precios unitarios; escala x4
+    # Escalado de compatibilidad SOLO en demo_legacy_scaled.
+    # En modo independent los valores se leen sin transformar.
     # cantidades, valores monetarios e impactos en USD.
     demo_cols = [
         "Valor USD_num","Valor total USD_num","Impacto USD_num",
