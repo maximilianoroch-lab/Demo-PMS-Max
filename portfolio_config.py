@@ -2,7 +2,7 @@
 PORTFOLIO = {
     "id": "demo_pms_max",
     "display_name": "DEMO PMS Max",
-    "sheet_id": "18qu9LXo55qQZq4oEAq42u_DKaI7e9lZL_PkfUZiu0T0",
+    "sheet_id": "1xzmw5US1z9CGj0eYdGYS2_FfpSzklGyOYODCJ6vvlcY",
     "base_currency": "USD",
     "app_name": "DEMO PMS Max · Cockpit",
     "privacy_scope": "demo_instance",
