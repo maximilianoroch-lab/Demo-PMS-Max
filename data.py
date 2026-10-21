@@ -8,7 +8,8 @@ FEEDS={
 "looker_feed_v2":"A1:T2000","app_feed_v2":"A1:T67","app_home":"A69:F77","app_banner":"A80:D89",
 "dashboard_diversificacion_v2":"A1:E20","dashboard_exposicion_v2":"A1:J30","dashboard_riesgo_v2":"A1:E30",
 "dashboard_evolucion_v2":"A1:F30", "snapshot_series_v2":"A1:H1000","dashboard_custodia_v2":"A1:E30","dashboard_tipo_v2":"A1:F20",
-"custodia_cash_v2":"A1:L100","app_custodia_detalle_v2":"A1:L500","app_custodia_resumen_v2":"A1:J30"}
+"custodia_cash_v2":"A1:L100","app_custodia_detalle_v2":"A1:L500","app_custodia_resumen_v2":"A1:J30",
+"cuentas_demo":"A1:D12"}
 
 def _url(sid,sheet,rg): return f"https://docs.google.com/spreadsheets/d/{sid}/gviz/tq?tqx=out:csv&sheet={sheet}&range={rg}"
 
@@ -70,7 +71,25 @@ def load_all_data(sid):
         sheet="app_feed_v2" if name in ("app_home","app_banner") else name
         r=requests.get(_url(sid,sheet,rg),timeout=15);r.raise_for_status()
         out[name]=normalize(name,pd.read_csv(StringIO(r.text)))
+    # Only Demo: display fictitious account identifiers. Backend accounting keys
+    # remain stable, except for the Criteria IDs already anonymized in the Demo base.
+    accounts=out.get("cuentas_demo",pd.DataFrame())
+    if not accounts.empty and {"Cuenta técnica (no modificar)","Cuenta visible DEMO"}.issubset(accounts.columns):
+        alias=dict(zip(accounts["Cuenta técnica (no modificar)"].astype(str),
+                       accounts["Cuenta visible DEMO"].astype(str)))
+        for sheet_name,df in out.items():
+            if sheet_name=="cuentas_demo" or df.empty:continue
+            for col in df.columns:
+                if col in ("Cuenta","Cuentas") or __import__("re").fullmatch(r"Cuenta \\d+",str(col)):
+                    df[col]=df[col].map(lambda x: _alias_demo_account(x,alias))
     return out
+
+def _alias_demo_account(value,alias):
+    if pd.isna(value):return value
+    s=str(value)
+    for technical,display in sorted(alias.items(),key=lambda kv:len(kv[0]),reverse=True):
+        s=s.replace(technical,display)
+    return s
 
 def _firstcol_map(df):
     out={}
