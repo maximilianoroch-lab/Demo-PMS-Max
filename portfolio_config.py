@@ -1,10 +1,10 @@
 
 PORTFOLIO = {
     "id": "demo_pms_max",
-    "display_name": "Demo PMS Max",
+    "display_name": "Demo PMS Bersoch",
     "sheet_id": "18qu9LXo55qQZq4oEAq42u_DKaI7e9lZL_PkfUZiu0T0",
     "base_currency": "USD",
-    "app_name": "Demo PMS Max · Cockpit",
+    "app_name": "Demo PMS Bersoch · Cockpit",
     "privacy_scope": "demo_instance",
     "rules": {
         "primary_wealth_excludes_crypto": True,
