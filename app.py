@@ -30,10 +30,10 @@ if _demo_code and not st.session_state.get("demo_access_ok",False):
 # El modelo ficticio es el único origen. Detener el flujo antes del escritorio histórico.
 from demo_independent_model import build_independent_model
 st.title("DEMO PMS Max")
-st.caption("Cartera enteramente ficticia · precios simulados en USD · no representa cotizaciones de mercado")
+st.caption("Inventario V5 ficticio · referencias de precios preliminares en USD · no son cotizaciones verificadas")
 try:
     @st.cache_data(ttl=180,show_spinner=False)
-    def _load_synthetic_demo():
+    def _load_synthetic_demo(version="V5_20261022"):
         return build_independent_model()
     _dm=_load_synthetic_demo()
 except Exception as _demo_err:
@@ -43,7 +43,7 @@ except Exception as _demo_err:
 _p=_dm["positions"]
 _s=_dm["summary"]
 st.metric("Patrimonio DEMO simulado",f'USD {_s["total"]:,.2f}')
-st.caption(f'{_s["positions_count"]} posiciones · {_p["Cuenta"].nunique()} cuentas ficticias · Fuente: Base DEMO PMS Max / DEMO_CARTERA_FICTICIA')
+st.caption(f'{_s["positions_count"]} posiciones · {_p["Cuenta"].nunique()} cuentas ficticias · Fuente: Base DEMO PMS Max / DEMO_INVENTARIO_V5')
 _demo_page=st.radio("Sección",["Resumen","Posiciones","Diversificación","Custodia","Riesgo","Evolución","Asesor IA","Comparar","Simulador"],horizontal=True,key="demo_independent_nav")
 if _demo_page=="Resumen":
     c1,c2,c3=st.columns(3)
