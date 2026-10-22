@@ -73,11 +73,17 @@ with st.expander("Migración DEMO · verificar cartera ficticia independiente", 
     st.caption("Esta vista consulta solamente DEMO_CARTERA_FICTICIA. Los precios son simulados y no representan cotizaciones de mercado.")
     if st.button("Verificar inventario DEMO independiente",key="verify_independent_demo"):
         try:
-            from demo_independent_feed import independent_demo_positions, independent_demo_summary
-            _synthetic_positions=independent_demo_positions()
-            _synthetic_summary=independent_demo_summary()
+            from demo_independent_model import build_independent_model
+            _synthetic_model=build_independent_model()
+            _synthetic_positions=_synthetic_model["positions"]
+            _synthetic_summary={
+                "total_usd":_synthetic_model["summary"]["total"],
+                "position_count":_synthetic_model["summary"]["positions_count"],
+                "account_count":int(_synthetic_positions["Cuenta"].nunique())
+            }
             st.session_state["synthetic_demo_data"]=_synthetic_positions
             st.session_state["synthetic_demo_summary"]=_synthetic_summary
+            st.session_state["synthetic_demo_model"]=_synthetic_model
             st.session_state.pop("synthetic_demo_error",None)
         except Exception as exc:
             st.session_state.pop("synthetic_demo_data",None)
@@ -90,6 +96,20 @@ with st.expander("Migración DEMO · verificar cartera ficticia independiente", 
         st.metric("Patrimonio ficticio (USD, precios simulados)",f'{_demo_summary["total_usd"]:,.2f}')
         st.caption(f'{_demo_summary["position_count"]} posiciones · {_demo_summary["account_count"]} cuentas · datos exclusivamente ficticios')
         st.dataframe(st.session_state["synthetic_demo_data"],hide_index=True,width="stretch")
+        if "synthetic_demo_model" in st.session_state:
+            _m=st.session_state["synthetic_demo_model"]
+            c1,c2,c3=st.columns(3)
+            with c1:
+                st.markdown("**Composición por tipo**")
+                st.dataframe(_m["by_type"],hide_index=True,width="stretch")
+            with c2:
+                st.markdown("**Distribución regional directa**")
+                st.dataframe(_m["by_region"],hide_index=True,width="stretch")
+            with c3:
+                st.markdown("**Custodia ficticia**")
+                st.dataframe(_m["by_custodian"],hide_index=True,width="stretch")
+            st.caption("Porcentajes y totales derivados únicamente del inventario ficticio; sin movimientos ni historia reales.")
+
     st.warning("La pantalla principal sigue en modo heredado hasta terminar la migración de los feeds del dashboard.")
 
 if "analysis_context" not in st.session_state:
