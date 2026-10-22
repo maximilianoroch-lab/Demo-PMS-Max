@@ -141,8 +141,8 @@ elif _demo_page=="Diversificación":
         st.subheader("Regiones directas")
         _bar(_dm["by_region"],"Región directa")
     with b:
-        st.subheader("Tipos de activos")
-        _bar(_dm["by_type"],"Tipo")
+        st.subheader("Sector")
+        _bar(_dm["by_sector"],"Sector")
     c,d=st.columns(2)
     with c:
         st.subheader("Cripto vs cartera convencional")
