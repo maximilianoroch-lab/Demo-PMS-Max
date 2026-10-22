@@ -1,53 +1,69 @@
-"""Adaptador de feeds exclusivamente ficticios, independiente del PMS real.
-
-Aún no sustituye todas las páginas del escritorio. Permite probar el origen
-ficticio y conciliaciones sin reutilizar snapshots/históricos reales.
-"""
+"""Modelo independiente DEMO V5. Usa solo DEMO_INVENTARIO_V5, no feeds heredados."""
+from io import StringIO
 import pandas as pd
-from demo_independent_feed import independent_demo_positions
+import requests
 
-ASSET_TYPES={
- "AAPL":("Cedear","Renta variable","Estados Unidos","Tecnología"),
- "MSFT":("Cedear","Renta variable","Estados Unidos","Tecnología"),
- "SPY":("ETF","Renta variable","Global","ETF diversificado"),
- "GLD":("ETF","Oro","Global","Oro"),
- "GGAL":("Acción AR","Renta variable","Argentina","Financiero"),
- "YPF":("Acción AR","Renta variable","Argentina","Energía"),
- "MELI":("Cedear","Renta variable","Latinoamérica","Consumo"),
- "GD35":("Bono","Renta fija","Argentina","Soberano"),
- "CASH":("Cash","Cash","Global","Efectivo"),
-}
+SHEET_ID="1xzmw5US1z9CGj0eYdGYS2_FfpSzklGyOYODCJ6vvlcY"
+CUSTODIANS=["SANTANDER","BBVA","CRITERIA 1234","CRITERIA 5678","ADCAP","IOL","GALICIA","BINANCE"]
+ETF=set("SPY ACWI QQQ FXI XLV GLD VEA EEM EWZ".split())
+ARG=set("ALUA BBAR BHIP BMA CEPU COME CRES GGAL PAMP SUPV TGSU2 TXAR YPFD".split())
+BONDS=set("AO28 AO29 AN29 GD35 GD38 GD41".split())
+CRYPTO=set("BTC ETH ADA SOL XRP".split())
+US=set("AAPL AMD AMZN AVGO BRKB DISN GLOB GOOGL HD JNJ JPM KO LLY LAC LAR LRCX MCD MELI META MSFT NKE NU NVDA PBR PEP PFE T TSLA V VIST WMT".split())
+REGION_AR=ARG|BONDS
 
 def build_independent_model(raw=None):
-    positions=independent_demo_positions() if raw is None else raw.copy()
-    ticker=set(positions["Ticker"].astype(str))
-    if not ticker.issubset(ASSET_TYPES):
-        raise ValueError("Activo ficticio sin clasificación explícita")
-    df=positions.rename(columns={"Cuenta DEMO":"Cuenta","Valor DEMO USD":"Valor USD","Cantidad":"Cantidad"}).copy()
-    df["Tipo"]=df["Ticker"].map(lambda t:ASSET_TYPES[t][0])
-    df["Clase"]=df["Ticker"].map(lambda t:ASSET_TYPES[t][1])
-    df["Región directa"]=df["Ticker"].map(lambda t:ASSET_TYPES[t][2])
-    df["Sector"]=df["Ticker"].map(lambda t:ASSET_TYPES[t][3])
-    df["Custodio"]=df["Cuenta"].map({"DEMO-BROKER-01":"Broker Atlas","DEMO-BROKER-02":"Broker Delta","DEMO-BANK-01":"Banco Horizonte"})
-    df["Valor USD_num"]=pd.to_numeric(df["Valor USD"],errors="raise")
-    df["Cantidad_num"]=pd.to_numeric(df["Cantidad"],errors="raise")
-    total=float(df["Valor USD_num"].sum())
-    if total<=0 or df["Custodio"].isna().any():
-        raise ValueError("Inventario ficticio no conciliado")
-    df["Peso_num"]=df["Valor USD_num"]/total
-    df["Peso"]=df["Peso_num"]*100
-    df["Fuente valor"]="SIMULADO_NO_MERCADO"
-    df["Estado dato"]="SIMULADO"
-    summary={
-        "total":total,"non_crypto":total,"crypto":0.0,"crypto_pct":0.0,
-        "argentina_pct":float(df.loc[df["Región directa"]=="Argentina","Valor USD_num"].sum()/total),
-        "top5_pct":float(df.groupby("Ticker")["Valor USD_num"].sum().nlargest(5).sum()/total),
-        "positions_count":int(df["Ticker"].nunique()),"total_change":None,
-        "non_crypto_change":None,"crypto_change":None,"argentina_change":None,"top5_change":None,
-        "price_update":"PRECIOS SIMULADOS","last_market":"Cartera ficticia","summary_source":"INDEPENDENT_SYNTHETIC",
-        "reconciled":True,"home_total":total,"feed_total":total,"reconciliation_diff":0.0
-    }
-    return {"positions":df,"summary":summary,
-            "by_type":df.groupby("Tipo",as_index=False)["Valor USD_num"].sum(),
-            "by_region":df.groupby("Región directa",as_index=False)["Valor USD_num"].sum(),
-            "by_custodian":df.groupby("Custodio",as_index=False)["Valor USD_num"].sum()}
+    if raw is None:
+        url=f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq"
+        r=requests.get(url,params={"sheet":"DEMO_INVENTARIO_V5","tqx":"out:csv"},timeout=20)
+        r.raise_for_status()
+        raw=pd.read_csv(StringIO(r.text))
+    required={"Ticker","Cantidad total","Precio USD indicativo","Valor USD indicativo"}|set(CUSTODIANS)
+    if not required.issubset(raw.columns):
+        raise ValueError("Faltan columnas del inventario V5")
+    raw=raw.copy()
+    raw["Ticker"]=raw["Ticker"].astype(str).str.upper().str.strip()
+    if len(raw)!=65 or raw["Ticker"].duplicated().any():
+        raise ValueError("Inventario V5 incompleto o con tickers duplicados")
+    if not set(raw["Ticker"]).issubset(ETF|ARG|BONDS|CRYPTO|US|{"CASH"}):
+        raise ValueError("Ticker sin clasificación")
+    for col in CUSTODIANS+["Cantidad total","Precio USD indicativo","Valor USD indicativo"]:
+        raw[col]=pd.to_numeric(raw[col],errors="raise")
+    if raw[CUSTODIANS].lt(0).any().any() or raw["Precio USD indicativo"].le(0).any():
+        raise ValueError("Cantidades o precios DEMO inválidos")
+    if not (raw[CUSTODIANS].sum(axis=1)-raw["Cantidad total"]).abs().lt(0.000001).all():
+        raise ValueError("Las cuentas no concilian con el total de cada instrumento")
+    if not ((raw["Cantidad total"]*raw["Precio USD indicativo"]-raw["Valor USD indicativo"]).abs()<0.02).all():
+        raise ValueError("Los valores USD no concilian con los precios indicativos")
+    long=raw.melt(id_vars=["Ticker","Precio USD indicativo"],value_vars=CUSTODIANS,var_name="Cuenta",value_name="Cantidad")
+    long=long[long["Cantidad"]>0].copy()
+    long["Valor USD_num"]=long["Cantidad"]*long["Precio USD indicativo"]
+    long["Valor USD"]=long["Valor USD_num"]
+    long["Cantidad_num"]=long["Cantidad"]
+    def typ(t):
+        return "ETF" if t in ETF else "Acción AR" if t in ARG else "Bono" if t in BONDS else "Cripto" if t in CRYPTO else "Cash" if t=="CASH" else "Cedear"
+    long["Tipo"]=long["Ticker"].map(typ)
+    long["Clase"]=long["Tipo"].map({"ETF":"Renta variable","Acción AR":"Renta variable","Bono":"Renta fija","Cripto":"Crypto","Cash":"Cash","Cedear":"Renta variable"})
+    long["Región directa"]=long["Ticker"].map(lambda t:"Argentina" if t in REGION_AR else "Global" if t in ETF or t in CRYPTO or t=="CASH" else "Estados Unidos / Internacional")
+    long["Sector"]="Sin desagregar"
+    long["Custodio"]=long["Cuenta"]
+    total=float(long["Valor USD_num"].sum())
+    if total<=0:raise ValueError("Patrimonio ficticio nulo")
+    long["Peso_num"]=long["Valor USD_num"]/total
+    long["Peso"]=long["Peso_num"]*100
+    long["Fuente valor"]="REFERENCIA DEMO NO VALIDADA"
+    long["Estado dato"]="SIMULADO"
+    non_crypto=float(long.loc[long["Tipo"]!="Cripto","Valor USD_num"].sum())
+    crypto=total-non_crypto
+    summary={"total":total,"non_crypto":non_crypto,"crypto":crypto,"crypto_pct":crypto/total,
+        "argentina_pct":float(long.loc[long["Región directa"]=="Argentina","Valor USD_num"].sum()/total),
+        "top5_pct":float(long.groupby("Ticker")["Valor USD_num"].sum().nlargest(5).sum()/total),
+        "positions_count":int(long["Ticker"].nunique()),"total_change":None,"non_crypto_change":None,
+        "crypto_change":None,"argentina_change":None,"top5_change":None,
+        "price_update":"PRECIOS INDICATIVOS","last_market":"Inventario V5 ficticio",
+        "summary_source":"INDEPENDENT_V5","reconciled":True,"home_total":total,
+        "feed_total":total,"reconciliation_diff":0}
+    return {"positions":long,"summary":summary,
+        "by_type":long.groupby("Tipo",as_index=False)["Valor USD_num"].sum(),
+        "by_region":long.groupby("Región directa",as_index=False)["Valor USD_num"].sum(),
+        "by_custodian":long.groupby("Custodio",as_index=False)["Valor USD_num"].sum()}
