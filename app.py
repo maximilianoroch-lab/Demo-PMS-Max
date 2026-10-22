@@ -15,62 +15,86 @@ try:
 except Exception:
     _demo_code = ""
 if _demo_code and not st.session_state.get("demo_access_ok",False):
-    st.title("DEMO PMS Max")
-    st.caption("DEMO · datos de demostración" if PORTFOLIO.get("data_mode") == "demo_legacy_scaled" else "Cartera independiente")
-    _entered = st.text_input("Código de acceso", type="password")
-    if st.button("Ingresar"):
-        if _entered == _demo_code:
-            st.session_state["demo_access_ok"]=True
-            st.rerun()
-        else:
-            st.error("Código incorrecto")
-    st.stop()
-
-# DEMO INDEPENDIENTE: no cargar jamás los feeds heredados en la aplicación pública.
-# El modelo ficticio es el único origen. Detener el flujo antes del escritorio histórico.
-from demo_independent_model import build_independent_model
-st.title("DEMO PMS Max")
-st.caption("Inventario V5 ficticio · referencias de precios preliminares en USD · no son cotizaciones verificadas")
+    st.markdown("""
+<style>
+.block-container {padding-top:1.2rem;max-width:1700px}
+[data-testid="stSidebar"] {background:#091522;color:#e8f1fb}
+[data-testid="stSidebar"] * {color:#e8f1fb}
+.demo-card {background:linear-gradient(180deg,#0d1b2b,#0a1827);border:1px solid #28455f;border-radius:14px;padding:18px 22px;min-height:135px}
+.demo-label {color:#93a7bd;font-size:13px;font-weight:700;text-transform:uppercase}
+.demo-value {color:#f4f7fb;font-size:28px;font-weight:850;margin-top:10px}
+.demo-small {color:#93a7bd;font-size:12px;margin-top:8px}
+</style>
+""",unsafe_allow_html=True)
 try:
     @st.cache_data(ttl=180,show_spinner=False)
     def _load_synthetic_demo(version="V5_20261022"):
         return build_independent_model()
     _dm=_load_synthetic_demo()
 except Exception as _demo_err:
-    st.error("No se puede abrir la cartera DEMO independiente. No se mostrará información heredada.")
+    st.error("No se puede abrir la cartera DEMO independiente. No se mostrarán datos heredados.")
     st.caption(str(_demo_err)[:200])
     st.stop()
 _p=_dm["positions"]
 _s=_dm["summary"]
-st.metric("Patrimonio DEMO simulado",f'USD {_s["total"]:,.2f}')
-st.caption(f'{_s["positions_count"]} posiciones · {_p["Cuenta"].nunique()} cuentas ficticias · Fuente: Base DEMO PMS Max / DEMO_INVENTARIO_V5')
-_demo_page=st.radio("Sección",["Resumen","Posiciones","Diversificación","Custodia","Riesgo","Evolución","Asesor IA","Comparar","Simulador"],horizontal=True,key="demo_independent_nav")
+with st.sidebar:
+    st.title("DEMO PMS Max")
+    st.caption("Cockpit · análisis de cartera ficticia")
+    st.markdown("### Dashboard")
+    _demo_page=st.radio("Navegación",["Resumen","Diversificación","Evolución","Riesgo","Custodia","Posiciones","Comparar","Simulador","Asesor IA"],key="demo_independent_nav",label_visibility="collapsed")
+    st.divider()
+    st.caption("V5 · cartera 100 % independiente")
+    st.caption("Referencias de precios indicativas, no verificadas")
+st.title(_demo_page)
+st.caption("Dashboard analítico de DEMO PMS Max · cartera independiente · USD · precios referenciales")
+def _card(label,value,sub=""):
+    st.markdown(f'<div class="demo-card"><div class="demo-label">{label}</div><div class="demo-value">{value}</div><div class="demo-small">{sub}</div></div>',unsafe_allow_html=True)
+def _usd(value): return "US$ "+f"{value:,.0f}".replace(",","·").replace(".",",").replace("·",".")
 if _demo_page=="Resumen":
-    c1,c2,c3=st.columns(3)
-    c1.metric("Exposición directa Argentina",f'{_s["argentina_pct"]:.1%}')
-    c2.metric("Concentración Top 5",f'{_s["top5_pct"]:.1%}')
-    c3.metric("Posiciones",_s["positions_count"])
-    st.subheader("Composición por tipo")
-    st.bar_chart(_dm["by_type"].set_index("Tipo")["Valor USD_num"])
+    c=st.columns([1.55,1,1,.9])
+    with c[0]: _card("Patrimonio total",_usd(_s["total"]),"Incluye Crypto · precios indicativos")
+    with c[1]: _card("Argentina",f'{_s["argentina_pct"]:.1%}',"Exposición directa")
+    with c[2]: _card("Top 5",f'{_s["top5_pct"]:.1%}',"Concentración")
+    with c[3]: _card("Posiciones",str(_s["positions_count"]),"65 instrumentos · 8 cuentas")
+    left,right=st.columns([.9,1.1])
+    with left:
+        st.subheader("Composición por tipo")
+        _types=_dm["by_type"].sort_values("Valor USD_num",ascending=True)
+        _fig=px.bar(_types,x="Valor USD_num",y="Tipo",orientation="h",text=_types["Valor USD_num"]/_s["total"]*100)
+        _fig.update_traces(texttemplate="%{text:.1f}%",textposition="outside")
+        _fig.update_layout(height=360,showlegend=False,xaxis_title=None,yaxis_title=None,margin=dict(l=5,r=60,t=10,b=10))
+        st.plotly_chart(_fig,width="stretch")
+    with right:
+        st.subheader("Mayores posiciones")
+        _top=_p.groupby("Ticker",as_index=False)["Valor USD_num"].sum().sort_values("Valor USD_num",ascending=False).head(10)
+        _top["Peso"]=_top["Valor USD_num"]/_s["total"]*100
+        st.dataframe(_top.rename(columns={"Valor USD_num":"Valor USD"}),hide_index=True,width="stretch",column_config={"Valor USD":st.column_config.NumberColumn(format="%.0f"),"Peso":st.column_config.NumberColumn(format="%.1f%%")})
 elif _demo_page=="Posiciones":
-    st.dataframe(_p[["Cuenta","Custodio","Ticker","Cantidad","Tipo","Valor USD_num","Peso_num"]],hide_index=True,width="stretch")
+    _cust=st.selectbox("Custodio",["Todos"]+sorted(_p["Custodio"].unique().tolist()))
+    _pos=_p if _cust=="Todos" else _p.loc[_p["Custodio"]==_cust]
+    st.dataframe(_pos[["Custodio","Cuenta","Ticker","Cantidad","Tipo","Valor USD_num","Peso_num"]],hide_index=True,width="stretch")
 elif _demo_page=="Diversificación":
-    st.subheader("Regiones directas")
-    st.bar_chart(_dm["by_region"].set_index("Región directa")["Valor USD_num"])
-    st.subheader("Distribución por tipo")
-    st.bar_chart(_dm["by_type"].set_index("Tipo")["Valor USD_num"])
+    c1,c2=st.columns(2)
+    with c1:
+        st.subheader("Regiones directas")
+        st.bar_chart(_dm["by_region"].set_index("Región directa")["Valor USD_num"])
+    with c2:
+        st.subheader("Distribución por tipo")
+        st.bar_chart(_dm["by_type"].set_index("Tipo")["Valor USD_num"])
 elif _demo_page=="Custodia":
+    st.subheader("Distribución por custodio")
     st.bar_chart(_dm["by_custodian"].set_index("Custodio")["Valor USD_num"])
     st.dataframe(_p[["Custodio","Cuenta","Ticker","Valor USD_num"]],hide_index=True,width="stretch")
 elif _demo_page=="Riesgo":
-    st.metric("Concentración 5 mayores posiciones",f'{_s["top5_pct"]:.1%}')
-    st.metric("Exposición directa Argentina",f'{_s["argentina_pct"]:.1%}')
-    st.warning("Volatilidad, correlaciones y drawdown no disponibles: no existe historial ficticio independiente.")
+    c1,c2=st.columns(2)
+    with c1:_card("Top 5",f'{_s["top5_pct"]:.1%}',"Concentración")
+    with c2:_card("Argentina",f'{_s["argentina_pct"]:.1%}',"Exposición directa")
+    st.info("Volatilidad, correlaciones y drawdown no disponibles: faltan históricos ficticios independientes.")
 elif _demo_page=="Evolución":
-    st.info("Evolución y rentabilidades desactivadas hasta contar con snapshots y flujos ficticios independientes.")
+    st.info("Evolución y rentabilidades desactivadas hasta disponer de snapshots y flujos ficticios independientes.")
 else:
-    st.info("Esta función está temporalmente desactivada en la DEMO independiente: requiere adaptar y validar sus datos de cartera ficticia. PMS Bersoch conserva sus funciones.")
-st.caption("DEMO independiente · cifras ilustrativas · sin conexión a posiciones, cuentas ni históricos de PMS Bersoch.")
+    st.info("Esta función todavía requiere adaptación al inventario V5. No se muestran datos históricos heredados.")
+st.caption("Fuente: Base DEMO PMS Max / DEMO_INVENTARIO_V5 · no se utilizan posiciones ni históricos de PMS Bersoch.")
 st.stop()
 
 st.markdown("""
