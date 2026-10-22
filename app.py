@@ -26,6 +26,53 @@ if _demo_code and not st.session_state.get("demo_access_ok",False):
             st.error("Código incorrecto")
     st.stop()
 
+# DEMO INDEPENDIENTE: no cargar jamás los feeds heredados en la aplicación pública.
+# El modelo ficticio es el único origen. Detener el flujo antes del escritorio histórico.
+from demo_independent_model import build_independent_model
+st.title("DEMO PMS Max")
+st.caption("Cartera enteramente ficticia · precios simulados en USD · no representa cotizaciones de mercado")
+try:
+    @st.cache_data(ttl=180,show_spinner=False)
+    def _load_synthetic_demo():
+        return build_independent_model()
+    _dm=_load_synthetic_demo()
+except Exception as _demo_err:
+    st.error("No se puede abrir la cartera DEMO independiente. No se mostrará información heredada.")
+    st.caption(str(_demo_err)[:200])
+    st.stop()
+_p=_dm["positions"]
+_s=_dm["summary"]
+st.metric("Patrimonio DEMO simulado",f'USD {_s["total"]:,.2f}')
+st.caption(f'{_s["positions_count"]} posiciones · {_p["Cuenta"].nunique()} cuentas ficticias · Fuente: Base DEMO PMS Max / DEMO_CARTERA_FICTICIA')
+_demo_page=st.radio("Sección",["Resumen","Posiciones","Diversificación","Custodia","Riesgo","Evolución","Asesor IA","Comparar","Simulador"],horizontal=True,key="demo_independent_nav")
+if _demo_page=="Resumen":
+    c1,c2,c3=st.columns(3)
+    c1.metric("Exposición directa Argentina",f'{_s["argentina_pct"]:.1%}')
+    c2.metric("Concentración Top 5",f'{_s["top5_pct"]:.1%}')
+    c3.metric("Posiciones",_s["positions_count"])
+    st.subheader("Composición por tipo")
+    st.bar_chart(_dm["by_type"].set_index("Tipo")["Valor USD_num"])
+elif _demo_page=="Posiciones":
+    st.dataframe(_p[["Cuenta","Custodio","Ticker","Cantidad","Tipo","Valor USD_num","Peso_num"]],hide_index=True,width="stretch")
+elif _demo_page=="Diversificación":
+    st.subheader("Regiones directas")
+    st.bar_chart(_dm["by_region"].set_index("Región directa")["Valor USD_num"])
+    st.subheader("Distribución por tipo")
+    st.bar_chart(_dm["by_type"].set_index("Tipo")["Valor USD_num"])
+elif _demo_page=="Custodia":
+    st.bar_chart(_dm["by_custodian"].set_index("Custodio")["Valor USD_num"])
+    st.dataframe(_p[["Custodio","Cuenta","Ticker","Valor USD_num"]],hide_index=True,width="stretch")
+elif _demo_page=="Riesgo":
+    st.metric("Concentración 5 mayores posiciones",f'{_s["top5_pct"]:.1%}')
+    st.metric("Exposición directa Argentina",f'{_s["argentina_pct"]:.1%}')
+    st.warning("Volatilidad, correlaciones y drawdown no disponibles: no existe historial ficticio independiente.")
+elif _demo_page=="Evolución":
+    st.info("Evolución y rentabilidades desactivadas hasta contar con snapshots y flujos ficticios independientes.")
+else:
+    st.info("Esta función está temporalmente desactivada en la DEMO independiente: requiere adaptar y validar sus datos de cartera ficticia. PMS Bersoch conserva sus funciones.")
+st.caption("DEMO independiente · cifras ilustrativas · sin conexión a posiciones, cuentas ni históricos de PMS Bersoch.")
+st.stop()
+
 st.markdown("""
 <style>
 .block-container {padding-top: 1.2rem; max-width: 1700px;}
