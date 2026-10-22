@@ -4,9 +4,8 @@ PORTFOLIO = {
     "display_name": "DEMO PMS Max",
     "sheet_id": "1xzmw5US1z9CGj0eYdGYS2_FfpSzklGyOYODCJ6vvlcY",
     "base_currency": "USD",
-    "data_mode": "demo_legacy_scaled",  # futuro: independent
-    "legacy_value_multiplier": 4.0,  # solo para la demo actual
-    "history_mode": "auto",  # auto | none | available
+    "data_mode": "independent",
+    "history_mode": "none",  # No se reutilizan históricos de Bersoch
 
     "app_name": "DEMO PMS Max · Cockpit",
     "privacy_scope": "demo_instance",
