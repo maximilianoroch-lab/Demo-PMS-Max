@@ -49,7 +49,26 @@ def build_independent_model(raw=None):
     long["Tipo"]=long["Ticker"].map(typ)
     long["Clase"]=long["Tipo"].map({"ETF":"Renta variable","Acción AR":"Renta variable","Bono":"Renta fija","Cripto":"Crypto","Cash":"Cash","Cedear":"Renta variable"})
     long["Región directa"]=long["Ticker"].map(lambda t:"Argentina" if t in REGION_AR else "Global" if t in ETF or t in CRYPTO or t=="CASH" else "Estados Unidos / Internacional")
-    long["Sector"]="Sin desagregar"
+    sectors={
+        "Energía":"YPFD PAMP CEPU TGSU2 VIST PBR",
+        "Bancos":"GGAL BBAR BMA SUPV BHIP",
+        "Tecnología":"AAPL AMD AVGO GOOGL MSFT NVDA LRCX GLOB",
+        "Consumo":"AMZN DISN HD KO MCD MELI NKE PEP WMT",
+        "Financiero":"BRKB JPM NU V",
+        "Salud":"JNJ LLY PFE",
+        "Comunicaciones":"META T",
+        "Industria y materiales":"ALUA COME CRES TXAR LAC LAR",
+        "Otros":"TSLA",
+    }
+    sector_map={t:category for category,tickers in sectors.items() for t in tickers.split()}
+    def sector(t):
+        if t in CRYPTO:return "Cripto"
+        if t in BONDS:return "Bonos soberanos"
+        if t=="CASH":return "Cash"
+        if t=="GLD":return "Oro"
+        if t in ETF:return "ETF diversificados"
+        return sector_map.get(t,"Otros")
+    long["Sector"]=long["Ticker"].map(sector)
     long["Custodio"]=long["Cuenta"]
     total=float(long["Valor USD_num"].sum())
     if total<=0:raise ValueError("Patrimonio ficticio nulo")
@@ -70,4 +89,5 @@ def build_independent_model(raw=None):
     return {"positions":long,"summary":summary,
         "by_type":long.groupby("Tipo",as_index=False)["Valor USD_num"].sum(),
         "by_region":long.groupby("Región directa",as_index=False)["Valor USD_num"].sum(),
-        "by_custodian":long.groupby("Custodio",as_index=False)["Valor USD_num"].sum()}
+        "by_custodian":long.groupby("Custodio",as_index=False)["Valor USD_num"].sum(),
+        "by_sector":long.groupby("Sector",as_index=False)["Valor USD_num"].sum()}
