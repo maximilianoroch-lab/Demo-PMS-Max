@@ -68,6 +68,30 @@ data=get_data()
 summary=portfolio_summary(data)
 positions=enrich_positions(data)
 
+# Diagnóstico de transición: NO sustituye los feeds heredados del dashboard.
+with st.expander("Migración DEMO · verificar cartera ficticia independiente", expanded=False):
+    st.caption("Esta vista consulta solamente DEMO_CARTERA_FICTICIA. Los precios son simulados y no representan cotizaciones de mercado.")
+    if st.button("Verificar inventario DEMO independiente",key="verify_independent_demo"):
+        try:
+            from demo_independent_feed import independent_demo_positions, independent_demo_summary
+            _synthetic_positions=independent_demo_positions()
+            _synthetic_summary=independent_demo_summary()
+            st.session_state["synthetic_demo_data"]=_synthetic_positions
+            st.session_state["synthetic_demo_summary"]=_synthetic_summary
+            st.session_state.pop("synthetic_demo_error",None)
+        except Exception as exc:
+            st.session_state.pop("synthetic_demo_data",None)
+            st.session_state.pop("synthetic_demo_summary",None)
+            st.session_state["synthetic_demo_error"]=str(exc)[:220]
+    if st.session_state.get("synthetic_demo_error"):
+        st.error("La fuente independiente todavía no pasó la validación: "+st.session_state["synthetic_demo_error"])
+    if "synthetic_demo_summary" in st.session_state:
+        _demo_summary=st.session_state["synthetic_demo_summary"]
+        st.metric("Patrimonio ficticio (USD, precios simulados)",f'{_demo_summary["total_usd"]:,.2f}')
+        st.caption(f'{_demo_summary["position_count"]} posiciones · {_demo_summary["account_count"]} cuentas · datos exclusivamente ficticios')
+        st.dataframe(st.session_state["synthetic_demo_data"],hide_index=True,width="stretch")
+    st.warning("La pantalla principal sigue en modo heredado hasta terminar la migración de los feeds del dashboard.")
+
 if "analysis_context" not in st.session_state:
     st.session_state["analysis_context"]={"dimension":"","value":""}
 
