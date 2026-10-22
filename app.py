@@ -15,7 +15,19 @@ try:
 except Exception:
     _demo_code = ""
 if _demo_code and not st.session_state.get("demo_access_ok",False):
-    st.markdown("""
+    st.title("DEMO PMS Max")
+    _entered=st.text_input("Código de acceso",type="password")
+    if st.button("Ingresar"):
+        if _entered==_demo_code:
+            st.session_state["demo_access_ok"]=True
+            st.rerun()
+        else:
+            st.error("Código incorrecto")
+    st.stop()
+
+from demo_independent_model import build_independent_model
+
+st.markdown("""
 <style>
 .block-container {padding-top:1.2rem;max-width:1700px}
 [data-testid="stSidebar"] {background:#091522;color:#e8f1fb}
