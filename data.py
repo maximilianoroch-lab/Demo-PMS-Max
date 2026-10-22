@@ -115,7 +115,6 @@ def portfolio_summary(data):
         x=parse_num(r.get("Valor",0))
         if p:
             return x/100
-        if name in ("Patrimonio total","Patrimonio sin Crypto","Crypto USD"):
         return x
 
     def ch(name):
