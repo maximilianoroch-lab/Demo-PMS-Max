@@ -49,6 +49,9 @@ except Exception as _demo_err:
     st.stop()
 _p=_dm["positions"]
 _s=_dm["summary"]
+def _card(label,value,sub=""):
+    st.markdown(f'<div class="demo-card"><div class="demo-label">{label}</div><div class="demo-value">{value}</div><div class="demo-small">{sub}</div></div>',unsafe_allow_html=True)
+
 def _fmt_usd(value):
     return "US$ "+f"{float(value):,.0f}".replace(",",".")
 
