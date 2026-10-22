@@ -28,7 +28,7 @@ def build_independent_model(raw=None):
     if not set(raw["Ticker"]).issubset(ETF|ARG|BONDS|CRYPTO|US|{"CASH"}):
         raise ValueError("Ticker sin clasificación")
     for col in CUSTODIANS+["Cantidad total","Precio USD indicativo","Valor USD indicativo"]:
-        raw[col]=pd.to_numeric(raw[col],errors="raise")
+        raw[col]=pd.to_numeric(raw[col].astype(str).str.strip().str.replace(",",".",regex=False),errors="raise")
     if raw[CUSTODIANS].lt(0).any().any() or raw["Precio USD indicativo"].le(0).any():
         raise ValueError("Cantidades o precios DEMO inválidos")
     if not (raw[CUSTODIANS].sum(axis=1)-raw["Cantidad total"]).abs().lt(0.000001).all():
