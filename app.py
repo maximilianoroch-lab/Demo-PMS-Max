@@ -49,63 +49,134 @@ except Exception as _demo_err:
     st.stop()
 _p=_dm["positions"]
 _s=_dm["summary"]
+def _fmt_usd(value):
+    return "US$ "+f"{float(value):,.0f}".replace(",",".")
+
+def _fmt_pct(value):
+    return f"{float(value)*100:.1f}%".replace(".",",")
+
+def _fmt_quantity(value):
+    return f"{float(value):,.4f}".replace(",","X").replace(".",",").replace("X",".") if float(value)!=int(float(value)) else f"{int(value):,}".replace(",",".")
+
+def _bar(df,label,limit=None):
+    t=df.sort_values("Valor USD_num",ascending=False).copy()
+    if limit:t=t.head(limit)
+    t=t.sort_values("Valor USD_num",ascending=True)
+    t["Porcentaje"]=t["Valor USD_num"]/_s["total"]*100
+    fig=px.bar(t,x="Valor USD_num",y=label,orientation="h",text="Porcentaje")
+    fig.update_traces(marker_color="#6097c2",marker_line_color="#a1bdd4",marker_line_width=1,
+                      texttemplate="%{text:.1f}%",textposition="outside",cliponaxis=False)
+    fig.update_layout(height=max(280,len(t)*43+75),showlegend=False,xaxis_title="Valor USD",
+                      yaxis_title=None,margin=dict(l=0,r=70,t=12,b=20),
+                      plot_bgcolor="rgba(0,0,0,0)",paper_bgcolor="rgba(0,0,0,0)")
+    fig.update_xaxes(showgrid=False,zeroline=False)
+    fig.update_yaxes(showgrid=False)
+    st.plotly_chart(fig,width="stretch")
+
+def _table(df):
+    st.dataframe(df,hide_index=True,width="stretch",row_height=36)
+
 with st.sidebar:
     st.title("DEMO PMS Max")
-    st.caption("Cockpit · análisis de cartera ficticia")
+    st.caption("Cockpit · análisis + asesor IA")
     st.markdown("### Dashboard")
-    _demo_page=st.radio("Navegación",["Resumen","Diversificación","Evolución","Riesgo","Custodia","Posiciones","Comparar","Simulador","Asesor IA"],key="demo_independent_nav",label_visibility="collapsed")
+    _dashboard=st.radio("Dashboard",["Resumen","Diversificación","Evolución","Riesgo","Custodia","Posiciones"],
+                       key="demo_dashboard_nav",label_visibility="collapsed")
+    st.markdown("### Herramientas")
+    _tool=st.radio("Herramientas",["—","Comparar Activos","Simular Compra/Venta"],
+                   key="demo_tools_nav",label_visibility="collapsed")
+    st.markdown("### IA")
+    _ia=st.button("Asesor IA",use_container_width=True,key="demo_ia_nav")
     st.divider()
-    st.caption("V5 · cartera 100 % independiente")
-    st.caption("Referencias de precios indicativas, no verificadas")
+    st.caption("V5 · cartera independiente")
+    st.caption("Precios de referencia · no verificados")
+if _ia:st.session_state["demo_forced_page"]="Asesor IA"
+elif _tool!="—":st.session_state["demo_forced_page"]=None
+elif st.session_state.get("demo_previous_dashboard")!=_dashboard:
+    st.session_state["demo_forced_page"]=None
+st.session_state["demo_previous_dashboard"]=_dashboard
+_demo_page=st.session_state.get("demo_forced_page") or ({"Comparar Activos":"Comparar","Simular Compra/Venta":"Simulador"}.get(_tool) if _tool!="—" else _dashboard)
 st.title(_demo_page)
-st.caption("Dashboard analítico de DEMO PMS Max · cartera independiente · USD · precios referenciales")
-def _card(label,value,sub=""):
-    st.markdown(f'<div class="demo-card"><div class="demo-label">{label}</div><div class="demo-value">{value}</div><div class="demo-small">{sub}</div></div>',unsafe_allow_html=True)
-def _usd(value): return "US$ "+f"{value:,.0f}".replace(",","·").replace(".",",").replace("·",".")
+st.caption("Dashboard analítico de DEMO PMS Max · navegación y contexto de cartera ficticia · precios indicativos")
 if _demo_page=="Resumen":
     c=st.columns([1.55,1,1,.9])
-    with c[0]: _card("Patrimonio total",_usd(_s["total"]),"Incluye Crypto · precios indicativos")
-    with c[1]: _card("Argentina",f'{_s["argentina_pct"]:.1%}',"Exposición directa")
-    with c[2]: _card("Top 5",f'{_s["top5_pct"]:.1%}',"Concentración")
-    with c[3]: _card("Posiciones",str(_s["positions_count"]),"65 instrumentos · 8 cuentas")
-    left,right=st.columns([.9,1.1])
+    with c[0]: _card("Patrimonio total",_fmt_usd(_s["total"]),"Incluye Crypto · valuación indicativa")
+    with c[1]: _card("Argentina",_fmt_pct(_s["argentina_pct"]),"Exposición directa")
+    with c[2]: _card("Top 5",_fmt_pct(_s["top5_pct"]),"Concentración")
+    with c[3]: _card("Posiciones",str(_s["positions_count"]),"8 cuentas ficticias")
+    left,right=st.columns([.84,1.16])
     with left:
         st.subheader("Composición por tipo")
-        _types=_dm["by_type"].sort_values("Valor USD_num",ascending=True)
-        _fig=px.bar(_types,x="Valor USD_num",y="Tipo",orientation="h",text=_types["Valor USD_num"]/_s["total"]*100)
-        _fig.update_traces(texttemplate="%{text:.1f}%",textposition="outside")
-        _fig.update_layout(height=360,showlegend=False,xaxis_title=None,yaxis_title=None,margin=dict(l=5,r=60,t=10,b=10))
-        st.plotly_chart(_fig,width="stretch")
+        _bar(_dm["by_type"],"Tipo")
     with right:
         st.subheader("Mayores posiciones")
-        _top=_p.groupby("Ticker",as_index=False)["Valor USD_num"].sum().sort_values("Valor USD_num",ascending=False).head(10)
-        _top["Peso"]=_top["Valor USD_num"]/_s["total"]*100
-        st.dataframe(_top.rename(columns={"Valor USD_num":"Valor USD"}),hide_index=True,width="stretch",column_config={"Valor USD":st.column_config.NumberColumn(format="%.0f"),"Peso":st.column_config.NumberColumn(format="%.1f%%")})
+        _top=_p.groupby("Ticker",as_index=False)["Valor USD_num"].sum().nlargest(12,"Valor USD_num")
+        _top["Peso"]=_top["Valor USD_num"]/_s["total"]
+        _top["Valor USD"]=_top["Valor USD_num"].map(_fmt_usd)
+        _top["Peso cartera"]=_top["Peso"].map(_fmt_pct)
+        _table(_top[["Ticker","Valor USD","Peso cartera"]])
 elif _demo_page=="Posiciones":
-    _cust=st.selectbox("Custodio",["Todos"]+sorted(_p["Custodio"].unique().tolist()))
-    _pos=_p if _cust=="Todos" else _p.loc[_p["Custodio"]==_cust]
-    st.dataframe(_pos[["Custodio","Cuenta","Ticker","Cantidad","Tipo","Valor USD_num","Peso_num"]],hide_index=True,width="stretch")
-elif _demo_page=="Diversificación":
     c1,c2=st.columns(2)
-    with c1:
+    with c1:_cust=st.selectbox("Custodio",["Todos"]+sorted(_p["Custodio"].unique().tolist()),key="demo_cust_filter")
+    with c2:_type=st.selectbox("Tipo",["Todos"]+sorted(_p["Tipo"].unique().tolist()),key="demo_type_filter")
+    _pos=_p.copy()
+    if _cust!="Todos":_pos=_pos[_pos["Custodio"]==_cust]
+    if _type!="Todos":_pos=_pos[_pos["Tipo"]==_type]
+    _view=st.segmented_control("Vista",["Consolidado","Por cuenta"],default="Consolidado",key="demo_position_view")
+    if _view=="Consolidado":
+        _pos=_pos.groupby(["Ticker","Tipo"],as_index=False).agg({"Cantidad":"sum","Valor USD_num":"sum"})
+        _pos["Cuenta"]=_pos["Ticker"].map(lambda t:", ".join(sorted(_p.loc[_p["Ticker"]==t,"Cuenta"].unique())))
+    _pos=_pos.sort_values("Valor USD_num",ascending=False).copy()
+    _pos["Unidades"]=_pos["Cantidad"].map(_fmt_quantity)
+    _pos["Valor USD"]=_pos["Valor USD_num"].map(_fmt_usd)
+    _pos["Peso"]=_pos["Valor USD_num"].div(_s["total"]).map(_fmt_pct)
+    st.caption(f'{len(_pos)} filas · {_fmt_usd(_pos["Valor USD_num"].sum())}')
+    _table(_pos[["Ticker","Cuenta","Tipo","Unidades","Valor USD","Peso"]])
+elif _demo_page=="Diversificación":
+    a,b=st.columns(2)
+    with a:
         st.subheader("Regiones directas")
-        st.bar_chart(_dm["by_region"].set_index("Región directa")["Valor USD_num"])
-    with c2:
-        st.subheader("Distribución por tipo")
-        st.bar_chart(_dm["by_type"].set_index("Tipo")["Valor USD_num"])
+        _bar(_dm["by_region"],"Región directa")
+    with b:
+        st.subheader("Tipos de activos")
+        _bar(_dm["by_type"],"Tipo")
+    c,d=st.columns(2)
+    with c:
+        st.subheader("Cripto vs cartera convencional")
+        _values=pd.DataFrame({"Clase":["Cartera convencional","Crypto"],"Valor":[_s["non_crypto"],_s["crypto"]]})
+        fig=px.pie(_values,names="Clase",values="Valor",hole=.54,
+                   color="Clase",color_discrete_map={"Cartera convencional":"#6097c2","Crypto":"#78304b"})
+        fig.update_traces(textinfo="label+percent",textposition="inside")
+        fig.update_layout(height=400,showlegend=False,margin=dict(l=0,r=0,t=12,b=0))
+        st.plotly_chart(fig,width="stretch")
+    with d:
+        st.subheader("ETFs principales")
+        _etf=_p[_p["Tipo"]=="ETF"].groupby("Ticker",as_index=False)["Valor USD_num"].sum()
+        _bar(_etf,"Ticker",8)
 elif _demo_page=="Custodia":
     st.subheader("Distribución por custodio")
-    st.bar_chart(_dm["by_custodian"].set_index("Custodio")["Valor USD_num"])
-    st.dataframe(_p[["Custodio","Cuenta","Ticker","Valor USD_num"]],hide_index=True,width="stretch")
+    _bar(_dm["by_custodian"],"Custodio")
+    _cust_tbl=_dm["by_custodian"].sort_values("Valor USD_num",ascending=False).copy()
+    _cust_tbl["Valor USD"]=_cust_tbl["Valor USD_num"].map(_fmt_usd)
+    _cust_tbl["Peso"]=_cust_tbl["Valor USD_num"].div(_s["total"]).map(_fmt_pct)
+    _table(_cust_tbl[["Custodio","Valor USD","Peso"]])
 elif _demo_page=="Riesgo":
-    c1,c2=st.columns(2)
-    with c1:_card("Top 5",f'{_s["top5_pct"]:.1%}',"Concentración")
-    with c2:_card("Argentina",f'{_s["argentina_pct"]:.1%}',"Exposición directa")
-    st.info("Volatilidad, correlaciones y drawdown no disponibles: faltan históricos ficticios independientes.")
+    _weights=_p.groupby("Ticker")["Valor USD_num"].sum().div(_s["total"]).sort_values(ascending=False)
+    _risk=st.columns(6)
+    _metrics=[("Mayor posición",_fmt_pct(_weights.iloc[0])),("Top 5",_fmt_pct(_weights.head(5).sum())),
+              ("Top 10",_fmt_pct(_weights.head(10).sum())),("HHI cartera",_fmt_pct((_weights**2).sum())),
+              ("Peso Crypto",_fmt_pct(_s["crypto_pct"])),("Argentina",_fmt_pct(_s["argentina_pct"]))]
+    for col,(label,value) in zip(_risk,_metrics):
+        with col:st.metric(label,value)
+    st.info("Volatilidad, drawdown y correlaciones: historial ficticio todavía insuficiente.")
+    st.subheader("Métricas aún no maduras")
+    _table(pd.DataFrame({"Métrica":["Volatilidad cartera","Drawdown máximo","Correlaciones"],
+          "Estado":["HISTORIAL INSUFICIENTE"]*3,
+          "Interpretación":["Se habilitará con cierres diarios independientes","Requiere una serie propia de patrimonio","Requiere suficientes observaciones comparables"]}))
 elif _demo_page=="Evolución":
     st.info("Evolución y rentabilidades desactivadas hasta disponer de snapshots y flujos ficticios independientes.")
 else:
-    st.info("Esta función todavía requiere adaptación al inventario V5. No se muestran datos históricos heredados.")
+    st.info("Esta función requiere adaptación al inventario V5. No se muestran datos históricos heredados.")
 st.caption("Fuente: Base DEMO PMS Max / DEMO_INVENTARIO_V5 · no se utilizan posiciones ni históricos de PMS Bersoch.")
 st.stop()
 
