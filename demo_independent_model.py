@@ -12,6 +12,10 @@ CRYPTO=set("BTC ETH ADA SOL XRP".split())
 US=set("AAPL AMD AMZN AVGO BRKB DISN GLOB GOOGL HD JNJ JPM KO LLY LAC LAR LRCX MCD MELI META MSFT NKE NU NVDA PBR PEP PFE T TSLA V VIST WMT".split())
 REGION_AR=ARG|BONDS
 
+def parse_demo_numbers(series):
+    """CSV de Google Sheets: soporta coma decimal sin redondear importes."""
+    return pd.to_numeric(series.astype(str).str.strip().str.replace(",",".",regex=False),errors="raise")
+
 def build_independent_model(raw=None):
     if raw is None:
         url=f"https://docs.google.com/spreadsheets/d/{SHEET_ID}/gviz/tq"
@@ -28,7 +32,7 @@ def build_independent_model(raw=None):
     if not set(raw["Ticker"]).issubset(ETF|ARG|BONDS|CRYPTO|US|{"CASH"}):
         raise ValueError("Ticker sin clasificación")
     for col in CUSTODIANS+["Cantidad total","Precio USD indicativo","Valor USD indicativo"]:
-        raw[col]=pd.to_numeric(raw[col].astype(str).str.strip().str.replace(",",".",regex=False),errors="raise")
+        raw[col]=parse_demo_numbers(raw[col])
     if raw[CUSTODIANS].lt(0).any().any() or raw["Precio USD indicativo"].le(0).any():
         raise ValueError("Cantidades o precios DEMO inválidos")
     if not (raw[CUSTODIANS].sum(axis=1)-raw["Cantidad total"]).abs().lt(0.000001).all():
