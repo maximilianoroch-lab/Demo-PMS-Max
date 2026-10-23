@@ -170,7 +170,25 @@ elif _demo_page=="Diversificación":
         _bar(_etf,"Ticker",8)
 elif _demo_page=="Custodia":
     st.subheader("Distribución por custodio")
-    _bar(_dm["by_custodian"],"Custodio")
+    _cust_graph=_p.copy()
+    _cust_graph["Grupo"]=_cust_graph["Cuenta"].astype(str)
+    _cust_graph["Custodio agregado"]=_cust_graph["Custodio"].astype(str).str.replace(
+        r"^CRITERIA.*","CRITERIA",regex=True)
+    _cust_graph["Grupo"]=_cust_graph.apply(
+        lambda r:r["Cuenta"] if r["Custodio agregado"]=="CRITERIA" else r["Custodio agregado"],axis=1)
+    _cust_graph=_cust_graph.groupby(["Custodio agregado","Grupo"],as_index=False)["Valor USD_num"].sum()
+    _cust_order=_cust_graph.groupby("Custodio agregado")["Valor USD_num"].sum().sort_values(ascending=False).index.tolist()
+    _cust_palette={"CRITERIA 1234":"#CDD2D9","CRITERIA 5678":"#747D89","SANTANDER":"#D56469",
+        "BBVA":"#478EC3","ADCAP":"#BE9B62","IOL":"#66A79A","GALICIA":"#DD8E54","BINANCE":"#E8BD4B"}
+    _cust_fig=px.bar(_cust_graph,x="Valor USD_num",y="Custodio agregado",color="Grupo",
+        orientation="h",category_orders={"Custodio agregado":_cust_order[::-1]},
+        labels={"Valor USD_num":"Valor USD","Grupo":"Cuenta / custodio","Custodio agregado":""},
+        color_discrete_map=_cust_palette)
+    _style_bar_demo(_cust_fig)
+    _cust_fig.update_yaxes(categoryorder="array",categoryarray=_cust_order[::-1])
+    _cust_fig.update_layout(barmode="stack",height=max(300,65*len(_cust_order)+100),
+        margin=dict(l=10,r=10,t=10,b=10),legend_title_text="Cuenta / custodio")
+    st.plotly_chart(_cust_fig,width="stretch")
     _cust_tbl=_dm["by_custodian"].sort_values("Valor USD_num",ascending=False).copy()
     _cust_tbl["Valor USD"]=_cust_tbl["Valor USD_num"].map(_fmt_usd)
     _cust_tbl["Peso"]=_cust_tbl["Valor USD_num"].div(_s["total"]).map(_fmt_pct)
