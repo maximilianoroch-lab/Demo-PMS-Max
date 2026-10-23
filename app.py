@@ -224,8 +224,77 @@ elif _demo_page=="Simulador":
         _metrics[1].metric("Nueva tenencia",_fmt_quantity(_new_qty))
         _metrics[2].metric("Peso nuevo",_fmt_pct(_new_weight),delta=f"{(_new_weight-_old_weight)*100:+.2f} pp")
         st.caption("Escenario de variación del patrimonio; no descuenta caja. No es una operación ejecutable ni una simulación autofinanciada.")
+elif _demo_page=="Asesor IA":
+    st.caption("Asesor de la cartera ficticia V5 · referencias USD indicativas · sin datos heredados.")
+    _selected=st.selectbox("Instrumento",sorted(_p["Ticker"].unique().tolist()),key="demo_advisor_ticker")
+    _ticker_positions=_p.loc[_p["Ticker"]==_selected]
+    _exposure=float(_ticker_positions["Valor USD_num"].sum())
+    c1,c2,c3=st.columns(3)
+    c1.metric("Posición ficticia",_fmt_usd(_exposure))
+    c2.metric("Peso",_fmt_pct(_exposure/_s["total"]))
+    c3.metric("Cuentas",str(_ticker_positions["Cuenta"].nunique()))
+    with st.expander("Análisis técnico · EMA y RSI",expanded=True):
+        st.caption("Cierres ajustados Yahoo Finance. La acción extranjera puede diferir del CEDEAR local.")
+        _history_symbol=st.text_input("Símbolo de mercado",value=_selected,key="demo_advisor_symbol").strip().upper()
+        _window=st.radio("Ventana",["6M","1A","3A","5A"],index=3,horizontal=True,key="demo_technical_window")
+        @st.cache_data(ttl=3600,show_spinner=False)
+        def _demo_get_technical(symbol):
+            from technical import fetch_history
+            return fetch_history(symbol)
+        if _history_symbol and st.session_state.get("demo_technical_loaded_symbol")!=_history_symbol:
+            st.session_state["demo_technical_loaded_symbol"]=_history_symbol
+            st.session_state.pop("demo_technical_data",None)
+            st.session_state.pop("demo_technical_error",None)
+            try:
+                st.session_state["demo_technical_data"]=_demo_get_technical(_history_symbol)
+            except Exception as exc:
+                st.session_state["demo_technical_error"]=str(exc)[:180]
+        if st.session_state.get("demo_technical_error"):
+            st.warning("Histórico no disponible: "+st.session_state["demo_technical_error"])
+        _hist=st.session_state.get("demo_technical_data")
+        _snapshot=None
+        if _hist is not None and not _hist.empty:
+            _days={"6M":183,"1A":365,"3A":1095,"5A":1827}[_window]
+            _shown=_hist.loc[_hist.index>=_hist.index.max()-pd.Timedelta(days=_days)]
+            st.plotly_chart(px.line(_shown,y=["Close","EMA 21","EMA 50","EMA 200"]),width="stretch")
+            st.plotly_chart(px.line(_shown,y="RSI 14"),width="stretch")
+            _last=_hist.iloc[-1]
+            def _tech_num(value):
+                return float(value) if pd.notna(value) else None
+            _snapshot={"symbol":_history_symbol,"as_of":str(_hist.index.max().date()),
+                "source":"Yahoo Finance / yfinance","price_currency":"No verificada para mercado local",
+                "instrument_match_to_portfolio":"No asumir igualdad CEDEAR/acción",
+                "close_adjusted":_tech_num(_last["Close"]),
+                "ema21":_tech_num(_last["EMA 21"]),"ema50":_tech_num(_last["EMA 50"]),
+                "ema200":_tech_num(_last["EMA 200"]),"rsi14":_tech_num(_last["RSI 14"]),
+                "sample_closes":len(_hist),"scope":"Descriptivo, sin recomendación"}
+            st.caption(f'Fuente Yahoo Finance · último cierre {_snapshot["as_of"]} · símbolo {_history_symbol}')
+    _app=_p.groupby("Ticker",as_index=False).agg({"Valor USD_num":"sum","Tipo":"first","Clase":"first",
+            "Región directa":"first","Sector":"first","Estado dato":"first"})
+    _app["Peso_num"]=_app["Valor USD_num"]/_s["total"]
+    _app["Región"]=_app["Región directa"]
+    _advisor_data={"app_feed_v2":_app,"looker_feed_v2":_p.copy(),
+                   "dashboard_riesgo_v2":pd.DataFrame(),
+                   "dashboard_exposicion_v2":pd.DataFrame()}
+    _intro=("IMPORTANTE: esta es una cartera DEMO 100 % ficticia; precios indicativos NO verificados, "
+            "sin retornos históricos ni valuación vigente confirmada. Nunca atribuir posiciones a Bersoch. ")
+    _default_question=f"Analizá {_selected} dentro de esta cartera ficticia, fundamentos, riesgos y contexto técnico verificable."
+    _question=st.text_area("Consulta",value=_default_question,key="demo_advisor_question")
+    try:
+        _advisor_ready=bool(st.secrets.get("OPENAI_API_KEY",""))
+    except Exception:
+        _advisor_ready=False
+    if not _advisor_ready:
+        st.warning("Para habilitar el Asesor IA, falta configurar OPENAI_API_KEY en Streamlit Secrets.")
+    if st.button("Analizar con IA",type="primary",disabled=not _advisor_ready,key="demo_advisor_run"):
+        with st.spinner("Analizando…"):
+            _answer=ask_advisor(_intro+_question,_advisor_data,_p,history=[],
+                                selected_ticker=_selected,technical_snapshot=_snapshot)
+            st.session_state["demo_advisor_answer"]=_answer
+    if st.session_state.get("demo_advisor_answer"):
+        st.markdown(st.session_state["demo_advisor_answer"])
 else:
-    st.info("Asesor IA pendiente de adaptación segura al inventario V5. No se muestran datos históricos heredados.")
+    st.info("Sección no disponible en esta versión independiente.")
 st.caption("Fuente: Base DEMO PMS Max / DEMO_INVENTARIO_V5 · no se utilizan posiciones ni históricos de PMS Bersoch.")
 st.stop()
 
