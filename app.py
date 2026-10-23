@@ -201,14 +201,19 @@ elif _demo_page=="Posiciones":
     _pos["Peso"]=_pos["Valor USD_num"].div(_s["total"]).map(_fmt_pct)
     st.caption(f'{len(_pos)} filas · {_fmt_usd(_pos["Valor USD_num"].sum())}')
     _table(_pos[["Ticker","Cuenta","Tipo","Unidades","Valor USD","Peso"]])
-    _focus=st.selectbox("Abrir instrumento",sorted(_pos["Ticker"].unique().tolist()),key="demo_position_focus")
+    _focus_options=sorted(_pos["Ticker"].unique().tolist())
+    _focus=_focus_options[0] if _focus_options else None
+    if not _focus_options:
+        st.info("No hay posiciones con los filtros elegidos.")
+    else:
+        _focus=st.selectbox("Abrir instrumento",_focus_options,key="demo_position_focus")
     _x,_y,_z=st.columns(3)
     _x.button("Analizar con IA",use_container_width=True,key="demo_pos_to_ai",
-              on_click=_demo_open_ticker,args=(_focus,"Asesor IA"))
+              on_click=_demo_open_ticker,args=(_focus,"Asesor IA"),disabled=not _focus_options)
     _y.button("Comparar activo",use_container_width=True,key="demo_pos_to_compare",
-              on_click=_demo_open_ticker,args=(_focus,"Comparar"))
+              on_click=_demo_open_ticker,args=(_focus,"Comparar"),disabled=not _focus_options)
     _z.button("Simular operación",use_container_width=True,key="demo_pos_to_sim",
-              on_click=_demo_open_ticker,args=(_focus,"Simulador"))
+              on_click=_demo_open_ticker,args=(_focus,"Simulador"),disabled=not _focus_options)
 elif _demo_page=="Diversificación":
     a,b=st.columns(2)
     with a:
