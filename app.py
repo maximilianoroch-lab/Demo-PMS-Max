@@ -1,4 +1,4 @@
-from pms_shared_ui import style_bar as shared_style_bar
+from pms_shared_ui import style_bar as shared_style_bar, fmt_usd as shared_fmt_usd, fmt_pct_fraction as shared_fmt_pct, fmt_number as shared_fmt_number
 
 import streamlit as st
 import pandas as pd
@@ -54,13 +54,17 @@ def _card(label,value,sub=""):
     st.markdown(f'<div class="demo-card"><div class="demo-label">{label}</div><div class="demo-value">{value}</div><div class="demo-small">{sub}</div></div>',unsafe_allow_html=True)
 
 def _fmt_usd(value):
-    return "US$ "+f"{float(value):,.0f}".replace(",",".")
+    return shared_fmt_usd(value)
 
 def _fmt_pct(value):
-    return f"{float(value)*100:.1f}%".replace(".",",")
+    return shared_fmt_pct(value)
 
 def _fmt_quantity(value):
-    return f"{float(value):,.4f}".replace(",","X").replace(".",",").replace("X",".") if float(value)!=int(float(value)) else f"{int(value):,}".replace(",",".")
+    try:
+        n=float(value)
+        return shared_fmt_number(value,0 if n.is_integer() else 4)
+    except (TypeError,ValueError,OverflowError):
+        return "—"
 
 def _style_bar_demo(fig,horizontal=True):
     return shared_style_bar(fig, horizontal=horizontal)
