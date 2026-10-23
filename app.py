@@ -329,7 +329,12 @@ elif _demo_page=="Asesor IA":
     c3.metric("Cuentas",str(_ticker_positions["Cuenta"].nunique()))
     with st.expander("Análisis técnico · EMA y RSI",expanded=True):
         st.caption("Cierres ajustados Yahoo Finance. La acción extranjera puede diferir del CEDEAR local.")
-        _history_symbol=st.text_input("Símbolo de mercado",value=_selected,key="demo_advisor_symbol").strip().upper()
+        if st.session_state.get("demo_advisor_previous_ticker")!=_selected:
+            st.session_state["demo_advisor_symbol"]=_selected
+            st.session_state["demo_advisor_previous_ticker"]=_selected
+            st.session_state.pop("demo_advisor_answer",None)
+            st.session_state["demo_advisor_question"]=f"Analizá {_selected} dentro de esta cartera ficticia, fundamentos, riesgos y contexto técnico verificable."
+        _history_symbol=st.text_input("Símbolo de mercado",key="demo_advisor_symbol").strip().upper()
         _window=st.radio("Ventana",["6M","1A","3A","5A"],index=3,horizontal=True,key="demo_technical_window")
         @st.cache_data(ttl=3600,show_spinner=False)
         def _demo_get_technical(symbol):
@@ -373,7 +378,7 @@ elif _demo_page=="Asesor IA":
     _intro=("IMPORTANTE: esta es una cartera DEMO 100 % ficticia; precios indicativos NO verificados, "
             "sin retornos históricos ni valuación vigente confirmada. Nunca atribuir posiciones a Bersoch. ")
     _default_question=f"Analizá {_selected} dentro de esta cartera ficticia, fundamentos, riesgos y contexto técnico verificable."
-    _question=st.text_area("Consulta",value=_default_question,key="demo_advisor_question")
+    _question=st.text_area("Consulta",key="demo_advisor_question")
     try:
         _advisor_ready=bool(st.secrets.get("OPENAI_API_KEY",""))
     except Exception:
