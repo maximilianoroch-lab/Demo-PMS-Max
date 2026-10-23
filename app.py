@@ -1,4 +1,4 @@
-from pms_shared_ui import style_bar as shared_style_bar, fmt_usd as shared_fmt_usd, fmt_pct_fraction as shared_fmt_pct, fmt_number as shared_fmt_number
+from pms_shared_ui import style_bar as shared_style_bar, fmt_usd as shared_fmt_usd, fmt_pct_fraction as shared_fmt_pct, fmt_number as shared_fmt_number, render_financial_table, render_kpi_card
 
 import streamlit as st
 import pandas as pd
@@ -51,7 +51,7 @@ except Exception as _demo_err:
 _p=_dm["positions"]
 _s=_dm["summary"]
 def _card(label,value,sub=""):
-    st.markdown(f'<div class="demo-card"><div class="demo-label">{label}</div><div class="demo-value">{value}</div><div class="demo-small">{sub}</div></div>',unsafe_allow_html=True)
+    return render_kpi_card(st,label,value,sub)
 
 def _fmt_usd(value):
     return shared_fmt_usd(value)
@@ -86,7 +86,7 @@ def _bar(df,label,limit=None,color="#79bff2",height=None):
     st.plotly_chart(fig,width="stretch")
 
 def _table(df):
-    st.dataframe(df,hide_index=True,width="stretch",row_height=36)
+    return render_financial_table(st,df)
 
 def _demo_dashboard_changed():
     st.session_state["demo_current_page"]=st.session_state["demo_dashboard_nav"]
