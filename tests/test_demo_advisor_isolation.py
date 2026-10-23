@@ -26,6 +26,13 @@ class DemoAdvisorIsolation(unittest.TestCase):
   self.assertIn('on_change=_demo_active_ticker_changed',code)
   self.assertIn('st.session_state.pop("demo_advisor_ticker",None)',code)
   self.assertIn('st.session_state.pop("demo_technical_data",None)',code)
+ def test_cross_module_navigation(self):
+  code=(ROOT/"app.py").read_text(encoding="utf-8")
+  self.assertIn('def _demo_open_ticker(ticker,page):',code)
+  for page in ('Asesor IA','Comparar','Simulador'):
+   self.assertIn('args=(_focus,"'+page+'")',code)
+  self.assertIn('st.session_state["demo_sidebar_ticker"]=ticker',code)
+  self.assertIn('disabled=not _focus_options',code)
  def test_advisor_no_real_holdings_rules(self):
   code=(ROOT/"advisor.py").read_text(encoding="utf-8")
   self.assertIn('inventario ficticio DEMO V5',code)
