@@ -48,7 +48,15 @@ def build_independent_model(raw=None):
         return "ETF" if t in ETF else "Acción AR" if t in ARG else "Bono" if t in BONDS else "Cripto" if t in CRYPTO else "Cash" if t=="CASH" else "Cedear"
     long["Tipo"]=long["Ticker"].map(typ)
     long["Clase"]=long["Tipo"].map({"ETF":"Renta variable","Acción AR":"Renta variable","Bono":"Renta fija","Cripto":"Crypto","Cash":"Cash","Cedear":"Renta variable"})
-    long["Región directa"]=long["Ticker"].map(lambda t:"Argentina" if t in REGION_AR else "Global" if t in ETF or t in CRYPTO or t=="CASH" else "Estados Unidos / Internacional")
+    etf_regions={"SPY":"Estados Unidos","QQQ":"Estados Unidos","XLV":"Estados Unidos","ACWI":"Global diversificado","FXI":"China","VEA":"Desarrollados ex-US","EEM":"Emergentes diversificados","EWZ":"Latam ex-Argentina","GLD":"Oro global"}
+    other_regions={"MELI":"Latam ex-Argentina","PBR":"Latam ex-Argentina","NU":"Latam ex-Argentina","GLOB":"Global diversificado","VIST":"Argentina","LAC":"Latam ex-Argentina","LAR":"Latam ex-Argentina"}
+    def region(t):
+        if t in REGION_AR:return "Argentina"
+        if t in CRYPTO:return "Cripto global"
+        if t=="CASH":return "Cash"
+        if t in etf_regions:return etf_regions[t]
+        return other_regions.get(t,"Estados Unidos")
+    long["Región directa"]=long["Ticker"].map(region)
     sectors={
         "Energía":"YPFD PAMP CEPU TGSU2 VIST PBR",
         "Bancos":"GGAL BBAR BMA SUPV BHIP",
