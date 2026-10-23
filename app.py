@@ -102,6 +102,18 @@ def _demo_tools_changed():
     else:
         st.session_state["demo_current_page"]=st.session_state.get("demo_dashboard_nav","Resumen")
 
+def _demo_active_ticker_changed():
+    selected=st.session_state.get("demo_sidebar_ticker","—")
+    st.session_state.pop("demo_advisor_ticker",None)
+    st.session_state.pop("demo_advisor_answer",None)
+    st.session_state.pop("demo_advisor_question",None)
+    st.session_state.pop("demo_advisor_symbol",None)
+    st.session_state.pop("demo_advisor_previous_ticker",None)
+    st.session_state.pop("demo_technical_loaded_symbol",None)
+    st.session_state.pop("demo_technical_data",None)
+    if selected!="—":
+        st.session_state["demo_current_page"]="Asesor IA"
+
 def _demo_ai_changed():
     st.session_state["demo_tools_nav"]="—"
     st.session_state["demo_current_page"]="Asesor IA"
@@ -120,6 +132,7 @@ with st.sidebar:
     st.divider()
     _demo_tickers=["—"]+sorted(_p["Ticker"].dropna().astype(str).unique().tolist())
     st.selectbox("Ticker activo (Asesor IA)",_demo_tickers,key="demo_sidebar_ticker",
+        on_change=_demo_active_ticker_changed,
         help="Este ticker se comparte con el Asesor IA. No limita la actualización del inventario.")
     st.caption("La actualización recarga el inventario ficticio V5 completo. No consulta el PMS real.")
     if st.button("Actualizar toda la cartera",use_container_width=True,key="demo_reload_inventory"):
