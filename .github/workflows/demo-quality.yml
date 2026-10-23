@@ -16,3 +16,5 @@ jobs:
         run: python -m compileall -q app.py advisor.py demo_trade.py demo_independent_model.py
       - name: Test simulator funding and accounting
         run: python -m unittest discover -s tests -p 'test_demo_trade.py' -v
+      - name: Check DEMO AI isolation and state synchronization
+        run: python -m unittest discover -s tests -p 'test_demo_advisor_isolation.py' -v
