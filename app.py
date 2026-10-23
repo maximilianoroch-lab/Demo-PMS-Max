@@ -61,19 +61,31 @@ def _fmt_pct(value):
 def _fmt_quantity(value):
     return f"{float(value):,.4f}".replace(",","X").replace(".",",").replace("X",".") if float(value)!=int(float(value)) else f"{int(value):,}".replace(",",".")
 
-def _bar(df,label,limit=None):
+def _style_bar_demo(fig,horizontal=True):
+    """Idéntica estética de barras de PMS Bersoch."""
+    fig.update_traces(marker_line_width=1.6,marker_line_color="rgba(231,240,250,0.52)",opacity=0.96)
+    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
+        font_color="#dce6f2",bargap=0.42,barcornerradius=5,
+        margin=dict(l=8,r=46,t=12,b=12),legend_title_text="")
+    if horizontal:
+        fig.update_yaxes(title_text=None,showgrid=False,categoryorder="total ascending")
+        fig.update_xaxes(gridcolor="rgba(170,193,214,0.12)",zeroline=False)
+    return fig
+
+def _bar(df,label,limit=None,color="#79bff2",height=None):
     t=df.sort_values("Valor USD_num",ascending=False).copy()
     if limit:t=t.head(limit)
     t=t.sort_values("Valor USD_num",ascending=True)
-    t["Porcentaje"]=t["Valor USD_num"]/_s["total"]*100
-    fig=px.bar(t,x="Valor USD_num",y=label,orientation="h",text="Porcentaje")
-    fig.update_traces(marker_color="#6097c2",marker_line_color="#a1bdd4",marker_line_width=1,
-                      texttemplate="%{text:.1f}%",textposition="outside",cliponaxis=False)
-    fig.update_layout(height=max(280,len(t)*43+75),showlegend=False,xaxis_title="Valor USD",
-                      yaxis_title=None,margin=dict(l=0,r=70,t=12,b=20),
-                      plot_bgcolor="rgba(0,0,0,0)",paper_bgcolor="rgba(0,0,0,0)")
-    fig.update_xaxes(showgrid=False,zeroline=False)
-    fig.update_yaxes(showgrid=False)
+    t["Etiqueta"]=t["Valor USD_num"].div(_s["total"]).mul(100).map(
+        lambda v:f"{v:.1f}%".replace(".",","))
+    fig=px.bar(t,x="Valor USD_num",y=label,orientation="h",text="Etiqueta",
+        labels={"Valor USD_num":"Valor USD",label:""},
+        color_discrete_sequence=[color])
+    _style_bar_demo(fig)
+    fig.update_traces(textposition="outside",cliponaxis=False,textfont_size=13,
+        hovertemplate="<b>%{y}</b><br>Monto: US$ %{x:,.0f}<extra></extra>")
+    fig.update_layout(yaxis_title=None,margin=dict(l=8,r=70,t=12,b=12),
+        height=height or max(290,len(t)*52+90),showlegend=False)
     st.plotly_chart(fig,width="stretch")
 
 def _table(df):
@@ -110,7 +122,7 @@ if _demo_page=="Resumen":
     left,right=st.columns([.84,1.16])
     with left:
         st.subheader("Composición por tipo")
-        _bar(_dm["by_type"],"Tipo")
+        _bar(_dm["by_type"],"Tipo",color="#598eb8",height=280)
     with right:
         st.subheader("Mayores posiciones")
         _top=_p.groupby("Ticker",as_index=False)["Valor USD_num"].sum().nlargest(12,"Valor USD_num")
@@ -139,10 +151,10 @@ elif _demo_page=="Diversificación":
     a,b=st.columns(2)
     with a:
         st.subheader("Regiones directas")
-        _bar(_dm["by_region"],"Región directa")
+        _bar(_dm["by_region"],"Región directa",color="#79bff2")
     with b:
         st.subheader("Sector")
-        _bar(_dm["by_sector"],"Sector")
+        _bar(_dm["by_sector"],"Sector",color="#4f8fc7")
     c,d=st.columns(2)
     with c:
         st.subheader("Cripto vs cartera convencional")
