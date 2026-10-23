@@ -23,6 +23,9 @@ class DemoAdvisorIsolation(unittest.TestCase):
   self.assertIn('st.session_state.pop("demo_advisor_answer",None)',code)
   self.assertIn('st.session_state["demo_advisor_question"]=',code)
   self.assertIn('st.text_input("Símbolo de mercado",key="demo_advisor_symbol")',code)
+  self.assertIn('on_change=_demo_active_ticker_changed',code)
+  self.assertIn('st.session_state.pop("demo_advisor_ticker",None)',code)
+  self.assertIn('st.session_state.pop("demo_technical_data",None)',code)
  def test_advisor_no_real_holdings_rules(self):
   code=(ROOT/"advisor.py").read_text(encoding="utf-8")
   self.assertIn('inventario ficticio DEMO V5',code)
