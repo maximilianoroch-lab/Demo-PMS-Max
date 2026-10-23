@@ -91,26 +91,36 @@ def _bar(df,label,limit=None,color="#79bff2",height=None):
 def _table(df):
     st.dataframe(df,hide_index=True,width="stretch",row_height=36)
 
+def _demo_dashboard_changed():
+    st.session_state["demo_current_page"]=st.session_state["demo_dashboard_nav"]
+    st.session_state["demo_tools_nav"]="—"
+
+def _demo_tools_changed():
+    selected=st.session_state["demo_tools_nav"]
+    if selected!="—":
+        st.session_state["demo_current_page"]={"Comparar Activos":"Comparar","Simular Compra/Venta":"Simulador"}[selected]
+    else:
+        st.session_state["demo_current_page"]=st.session_state.get("demo_dashboard_nav","Resumen")
+
+def _demo_ai_changed():
+    st.session_state["demo_tools_nav"]="—"
+    st.session_state["demo_current_page"]="Asesor IA"
+
 with st.sidebar:
     st.title("DEMO PMS Max")
     st.caption("Cockpit · análisis + asesor IA")
     st.markdown("### Dashboard")
-    _dashboard=st.radio("Dashboard",["Resumen","Diversificación","Evolución","Riesgo","Custodia","Posiciones"],
-                       key="demo_dashboard_nav",label_visibility="collapsed")
+    st.radio("Dashboard",["Resumen","Diversificación","Evolución","Riesgo","Custodia","Posiciones"],
+             key="demo_dashboard_nav",label_visibility="collapsed",on_change=_demo_dashboard_changed)
     st.markdown("### Herramientas")
-    _tool=st.radio("Herramientas",["—","Comparar Activos","Simular Compra/Venta"],
-                   key="demo_tools_nav",label_visibility="collapsed")
+    st.radio("Herramientas",["—","Comparar Activos","Simular Compra/Venta"],
+             key="demo_tools_nav",label_visibility="collapsed",on_change=_demo_tools_changed)
     st.markdown("### IA")
-    _ia=st.button("Asesor IA",use_container_width=True,key="demo_ia_nav")
+    st.button("Asesor IA",use_container_width=True,key="demo_ia_nav",on_click=_demo_ai_changed)
     st.divider()
-    st.caption("V5 · cartera independiente")
-    st.caption("Precios de referencia · no verificados")
-if _ia:st.session_state["demo_forced_page"]="Asesor IA"
-elif _tool!="—":st.session_state["demo_forced_page"]=None
-elif st.session_state.get("demo_previous_dashboard")!=_dashboard:
-    st.session_state["demo_forced_page"]=None
-st.session_state["demo_previous_dashboard"]=_dashboard
-_demo_page=st.session_state.get("demo_forced_page") or ({"Comparar Activos":"Comparar","Simular Compra/Venta":"Simulador"}.get(_tool) if _tool!="—" else _dashboard)
+    st.caption("V5 · cartera 100 % ficticia")
+    st.caption("Precios indicativos, no verificados")
+_demo_page=st.session_state.get("demo_current_page","Resumen")
 st.title(_demo_page)
 st.caption("Dashboard analítico de DEMO PMS Max · navegación y contexto de cartera ficticia · precios indicativos")
 if _demo_page=="Resumen":
