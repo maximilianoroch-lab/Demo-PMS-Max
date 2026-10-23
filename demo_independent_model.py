@@ -33,6 +33,10 @@ def build_independent_model(raw=None):
         raise ValueError("Ticker sin clasificación")
     for col in CUSTODIANS+["Cantidad total","Precio USD indicativo","Valor USD indicativo"]:
         raw[col]=parse_demo_numbers(raw[col])
+    import numpy as np
+    numeric_columns=CUSTODIANS+["Cantidad total","Precio USD indicativo","Valor USD indicativo"]
+    if not np.isfinite(raw[numeric_columns].to_numpy(dtype=float)).all():
+        raise ValueError("El inventario DEMO contiene importes faltantes o no finitos")
     if raw[CUSTODIANS].lt(0).any().any() or raw["Precio USD indicativo"].le(0).any():
         raise ValueError("Cantidades o precios DEMO inválidos")
     if not (raw[CUSTODIANS].sum(axis=1)-raw["Cantidad total"]).abs().lt(0.000001).all():
