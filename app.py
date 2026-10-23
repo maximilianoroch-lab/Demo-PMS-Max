@@ -1,3 +1,4 @@
+from pms_shared_ui import style_bar as shared_style_bar
 
 import streamlit as st
 import pandas as pd
@@ -62,15 +63,7 @@ def _fmt_quantity(value):
     return f"{float(value):,.4f}".replace(",","X").replace(".",",").replace("X",".") if float(value)!=int(float(value)) else f"{int(value):,}".replace(",",".")
 
 def _style_bar_demo(fig,horizontal=True):
-    """Idéntica estética de barras de PMS Bersoch."""
-    fig.update_traces(marker_line_width=1.6,marker_line_color="rgba(231,240,250,0.52)",opacity=0.96)
-    fig.update_layout(paper_bgcolor="rgba(0,0,0,0)",plot_bgcolor="rgba(0,0,0,0)",
-        font_color="#dce6f2",bargap=0.42,barcornerradius=5,
-        margin=dict(l=8,r=46,t=12,b=12),legend_title_text="")
-    if horizontal:
-        fig.update_yaxes(title_text=None,showgrid=False,categoryorder="total ascending")
-        fig.update_xaxes(gridcolor="rgba(170,193,214,0.12)",zeroline=False)
-    return fig
+    return shared_style_bar(fig, horizontal=horizontal)
 
 def _bar(df,label,limit=None,color="#79bff2",height=None):
     t=df.sort_values("Valor USD_num",ascending=False).copy()
@@ -698,18 +691,7 @@ def custodian_color(custodian):
     return CUSTODIAN_COLORS.get(str(custodian).strip().upper(), "#748CA5")
 
 def style_bar(fig, horizontal=True):
-    """Aspecto compartido: barras compactas, borde fino y fondo transparente."""
-    fig.update_traces(marker_line_width=1.6, marker_line_color="rgba(231,240,250,0.52)", opacity=0.96)
-    fig.update_layout(
-        paper_bgcolor="rgba(0,0,0,0)", plot_bgcolor="rgba(0,0,0,0)",
-        font_color="#dce6f2", bargap=0.42, barcornerradius=5,
-        margin=dict(l=8,r=46,t=12,b=12),
-        legend_title_text=""
-    )
-    if horizontal:
-        fig.update_yaxes(title_text=None, showgrid=False, categoryorder="total ascending")
-        fig.update_xaxes(gridcolor="rgba(170,193,214,0.12)", zeroline=False)
-    return fig
+    return shared_style_bar(fig, horizontal=horizontal)
 
 def signed_number(v, percentage=False):
     if v is None or pd.isna(v): return "—"
