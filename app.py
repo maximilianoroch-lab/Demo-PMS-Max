@@ -257,30 +257,67 @@ elif _demo_page=="Comparar":
         _table(pd.DataFrame(_comparison))
         st.info("Esta comparación utiliza solamente información interna DEMO; no implica una recomendación fundamental o técnica.")
 elif _demo_page=="Simulador":
-    st.subheader("Simular compra/venta")
-    st.caption("Simulación sin ejecución. Se mantienen los precios de referencia de la DEMO.")
-    _catalog=_p.groupby("Ticker",as_index=False).agg({"Cantidad":"sum","Valor USD_num":"sum","Precio USD indicativo":"first"})
-    _ticker=st.selectbox("Ticker",sorted(_catalog["Ticker"].tolist()),key="demo_sim_ticker")
-    _side=st.radio("Operación",["Compra","Venta"],horizontal=True,key="demo_sim_side")
-    _qty=st.number_input("Cantidad de unidades",min_value=0.0,value=100.0,step=1.0,key="demo_sim_qty")
-    _asset=_catalog.set_index("Ticker").loc[_ticker]
-    _unit=float(_asset["Precio USD indicativo"])
-    _held=float(_asset["Cantidad"])
-    _old_value=float(_asset["Valor USD_num"])
-    _delta=_qty*_unit*(1 if _side=="Compra" else -1)
-    _new_qty=_held+_qty*(1 if _side=="Compra" else -1)
-    if _new_qty<0:
-        st.error(f"La venta excede la tenencia ficticia disponible ({_fmt_quantity(_held)} unidades).")
+    st.subheader("Simulador de operación")
+    st.caption("Impacto estimado sobre la cartera ficticia V5. No ejecuta operaciones; no incluye comisiones ni deslizamiento.")
+    _positions=_p.groupby("Ticker",as_index=False)["Valor USD_num"].sum()
+    _holdings=dict(zip(_positions["Ticker"],_positions["Valor USD_num"]))
+    _cash=float(_holdings.get("CASH",0))
+    _tickers=sorted(t for t in _holdings if t!="CASH")
+    _active=st.session_state.get("demo_sidebar_ticker","—")
+    _idx=_tickers.index(_active) if _active in _tickers else 0
+    _a,_b,_c=st.columns([1,1,1.1])
+    _ticker=_a.selectbox("Activo",_tickers,index=_idx,key="demo_sim_ticker")
+    _operation=_b.selectbox("Operación",["Comprar","Vender"],key="demo_sim_op")
+    _amount=_c.number_input("Monto USD",min_value=0.0,step=100.0,key="demo_sim_amount")
+    _source=None
+    _cash_used=0.0
+    if _operation=="Comprar":
+        _funding=st.selectbox("¿De dónde salen los fondos?",
+            ["CASH","Venta de otro activo","CASH + venta de activo","Aporte externo"],
+            key="demo_sim_funding",
+            help="CASH o la venta de otro activo financian el cambio sin aumentar el patrimonio.")
+        if _funding in ("Venta de otro activo","CASH + venta de activo"):
+            _source=st.selectbox("Activo a vender para financiar",
+                [t for t in _tickers if t!=_ticker],key="demo_sim_source")
+            if _funding=="CASH + venta de activo":
+                _cash_used=st.number_input("Usar de CASH (USD)",min_value=0.0,
+                    max_value=max(0.0,min(_cash,float(_amount))),value=0.0,step=100.0,
+                    key="demo_sim_cash_used")
+                st.caption("Venta simulada de "+_source+": "+_fmt_usd(_amount-_cash_used))
+            else:
+                st.caption("Venta simulada de "+_source+": "+_fmt_usd(_amount))
     else:
-        _new_total=_s["total"]+_delta
-        _new_value=_old_value+_delta
-        _old_weight=_old_value/_s["total"]
-        _new_weight=_new_value/_new_total if _new_total>0 else 0
-        _metrics=st.columns(3)
-        _metrics[0].metric("Impacto bruto",_fmt_usd(_delta))
-        _metrics[1].metric("Nueva tenencia",_fmt_quantity(_new_qty))
-        _metrics[2].metric("Peso nuevo",_fmt_pct(_new_weight),delta=f"{(_new_weight-_old_weight)*100:+.2f} pp")
-        st.caption("Escenario de variación del patrimonio; no descuenta caja. No es una operación ejecutable ni una simulación autofinanciada.")
+        _funding=st.selectbox("Destino de los fondos",["CASH","Retiro externo"],
+                              key="demo_sim_sale_destination")
+    if _amount>0:
+        from demo_trade import simulate_demo_trade
+        _sim=simulate_demo_trade(_holdings,_ticker,_operation,_amount,_funding,_source,_cash_used)
+        if _sim.get("error"):
+            st.error(_sim["error"])
+        else:
+            def _delta_usd(v):
+                return ("+" if v>0 else "-" if v<0 else "")+_fmt_usd(abs(v))
+            _x,_y,_z=st.columns(3)
+            _x.metric("Valor posición",_fmt_usd(_sim["value_after"]),
+                delta=_delta_usd(_sim["value_after"]-_sim["value_before"]))
+            _y.metric("Peso posición",_fmt_pct(_sim["weight_after"]),
+                delta=f'{(_sim["weight_after"]-_sim["weight_before"])*100:+.2f} pp')
+            _z.metric("CASH",_fmt_usd(_sim["cash_after"]),
+                delta=_delta_usd(_sim["cash_after"]-_sim["cash_before"]),delta_color="off")
+            _d,_e=st.columns(2)
+            _d.metric("Patrimonio total",_fmt_usd(_sim["total_after"]),
+                delta=_delta_usd(_sim["total_after"]-_sim["total_before"]),delta_color="off")
+            _e.metric("Top 5",_fmt_pct(_sim["top5_after"]),
+                delta=f'{(_sim["top5_after"]-_sim["top5_before"])*100:+.2f} pp',delta_color="off")
+            st.markdown("#### Antes vs. después")
+            _rows=[("Activo "+_ticker,_sim["value_before"],_sim["value_after"]),
+                   ("CASH",_sim["cash_before"],_sim["cash_after"])]
+            if _sim.get("source_ticker"):
+                _rows.append(("Activo "+_sim["source_ticker"],_sim["source_before"],_sim["source_after"]))
+            _rows.append(("Patrimonio",_sim["total_before"],_sim["total_after"]))
+            _table(pd.DataFrame([{"Concepto":n,"Antes":_fmt_usd(x),"Después":_fmt_usd(y),
+                "Cambio":_delta_usd(y-x)} for n,x,y in _rows]))
+            st.caption("Los cambios USD y de peso se muestran por separado. Esta simulación usa valores de referencia ficticios.")
 elif _demo_page=="Asesor IA":
     st.caption("Asesor de la cartera ficticia V5 · referencias USD indicativas · sin datos heredados.")
     _selected=st.selectbox("Instrumento",sorted(_p["Ticker"].unique().tolist()),index=(sorted(_p["Ticker"].unique().tolist()).index(st.session_state["demo_sidebar_ticker"]) if st.session_state.get("demo_sidebar_ticker") in _p["Ticker"].values else 0),key="demo_advisor_ticker")
