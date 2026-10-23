@@ -114,6 +114,20 @@ def _demo_active_ticker_changed():
     if selected!="—":
         st.session_state["demo_current_page"]="Asesor IA"
 
+def _demo_open_ticker(ticker,page):
+    st.session_state["demo_sidebar_ticker"]=ticker
+    st.session_state["demo_current_page"]=page
+    st.session_state["demo_tools_nav"]={"Comparar":"Comparar Activos","Simulador":"Simular Compra/Venta"}.get(page,"—")
+    st.session_state.pop("demo_advisor_ticker",None)
+    st.session_state.pop("demo_advisor_answer",None)
+    st.session_state.pop("demo_technical_loaded_symbol",None)
+    st.session_state.pop("demo_technical_data",None)
+    st.session_state.pop("demo_advisor_previous_ticker",None)
+    if page=="Comparar":
+        st.session_state["demo_cmp_a"]=ticker
+    if page=="Simulador":
+        st.session_state["demo_sim_ticker"]=ticker
+
 def _demo_ai_changed():
     st.session_state["demo_tools_nav"]="—"
     st.session_state["demo_current_page"]="Asesor IA"
@@ -187,6 +201,14 @@ elif _demo_page=="Posiciones":
     _pos["Peso"]=_pos["Valor USD_num"].div(_s["total"]).map(_fmt_pct)
     st.caption(f'{len(_pos)} filas · {_fmt_usd(_pos["Valor USD_num"].sum())}')
     _table(_pos[["Ticker","Cuenta","Tipo","Unidades","Valor USD","Peso"]])
+    _focus=st.selectbox("Abrir instrumento",sorted(_pos["Ticker"].unique().tolist()),key="demo_position_focus")
+    _x,_y,_z=st.columns(3)
+    _x.button("Analizar con IA",use_container_width=True,key="demo_pos_to_ai",
+              on_click=_demo_open_ticker,args=(_focus,"Asesor IA"))
+    _y.button("Comparar activo",use_container_width=True,key="demo_pos_to_compare",
+              on_click=_demo_open_ticker,args=(_focus,"Comparar"))
+    _z.button("Simular operación",use_container_width=True,key="demo_pos_to_sim",
+              on_click=_demo_open_ticker,args=(_focus,"Simulador"))
 elif _demo_page=="Diversificación":
     a,b=st.columns(2)
     with a:
@@ -254,7 +276,9 @@ elif _demo_page=="Comparar":
     _asset=_p.groupby("Ticker",as_index=False).agg({"Cantidad":"sum","Valor USD_num":"sum","Tipo":"first","Precio USD indicativo":"first","Sector":"first"})
     _options=sorted(_asset["Ticker"].tolist())
     _a,_b=st.columns(2)
-    with _a:_ticker_a=st.selectbox("Activo A",_options,index=0,key="demo_cmp_a")
+    if "demo_cmp_a" not in st.session_state:
+        st.session_state["demo_cmp_a"]=st.session_state.get("demo_sidebar_ticker","—") if st.session_state.get("demo_sidebar_ticker") in _options else _options[0]
+    with _a:_ticker_a=st.selectbox("Activo A",_options,key="demo_cmp_a")
     with _b:_ticker_b=st.selectbox("Activo B",_options,index=1,key="demo_cmp_b")
     if _ticker_a==_ticker_b:
         st.warning("Seleccioná dos instrumentos diferentes.")
@@ -279,7 +303,9 @@ elif _demo_page=="Simulador":
     _active=st.session_state.get("demo_sidebar_ticker","—")
     _idx=_tickers.index(_active) if _active in _tickers else 0
     _a,_b,_c=st.columns([1,1,1.1])
-    _ticker=_a.selectbox("Activo",_tickers,index=_idx,key="demo_sim_ticker")
+    if "demo_sim_ticker" not in st.session_state:
+        st.session_state["demo_sim_ticker"]=_tickers[_idx]
+    _ticker=_a.selectbox("Activo",_tickers,key="demo_sim_ticker")
     _operation=_b.selectbox("Operación",["Comprar","Vender"],key="demo_sim_op")
     _amount=_c.number_input("Monto USD",min_value=0.0,step=100.0,key="demo_sim_amount")
     _source=None
