@@ -178,8 +178,54 @@ elif _demo_page=="Riesgo":
           "Interpretación":["Se habilitará con cierres diarios independientes","Requiere una serie propia de patrimonio","Requiere suficientes observaciones comparables"]}))
 elif _demo_page=="Evolución":
     st.info("Evolución y rentabilidades desactivadas hasta disponer de snapshots y flujos ficticios independientes.")
+elif _demo_page=="Comparar":
+    st.subheader("Comparar activos de DEMO")
+    st.caption("Comparación de posiciones, valuación y peso de cartera; los precios son referencias indicativas.")
+    _asset=_p.groupby("Ticker",as_index=False).agg({"Cantidad":"sum","Valor USD_num":"sum","Tipo":"first","Precio USD indicativo":"first","Sector":"first"})
+    _options=sorted(_asset["Ticker"].tolist())
+    _a,_b=st.columns(2)
+    with _a:_ticker_a=st.selectbox("Activo A",_options,index=0,key="demo_cmp_a")
+    with _b:_ticker_b=st.selectbox("Activo B",_options,index=1,key="demo_cmp_b")
+    if _ticker_a==_ticker_b:
+        st.warning("Seleccioná dos instrumentos diferentes.")
+    else:
+        _view=_asset.set_index("Ticker")
+        _comparison=[]
+        for _field,_label,_format in [("Tipo","Tipo",str),("Sector","Sector",str),
+             ("Cantidad","Tenencia",_fmt_quantity),("Precio USD indicativo","Referencia USD",_fmt_usd),
+             ("Valor USD_num","Valor total",_fmt_usd)]:
+            _comparison.append({"Indicador":_label,_ticker_a:_format(_view.loc[_ticker_a,_field]),_ticker_b:_format(_view.loc[_ticker_b,_field])})
+        _comparison.append({"Indicador":"Peso cartera",_ticker_a:_fmt_pct(_view.loc[_ticker_a,"Valor USD_num"]/_s["total"]),
+                            _ticker_b:_fmt_pct(_view.loc[_ticker_b,"Valor USD_num"]/_s["total"])})
+        _table(pd.DataFrame(_comparison))
+        st.info("Esta comparación utiliza solamente información interna DEMO; no implica una recomendación fundamental o técnica.")
+elif _demo_page=="Simulador":
+    st.subheader("Simular compra/venta")
+    st.caption("Simulación sin ejecución. Se mantienen los precios de referencia de la DEMO.")
+    _catalog=_p.groupby("Ticker",as_index=False).agg({"Cantidad":"sum","Valor USD_num":"sum","Precio USD indicativo":"first"})
+    _ticker=st.selectbox("Ticker",sorted(_catalog["Ticker"].tolist()),key="demo_sim_ticker")
+    _side=st.radio("Operación",["Compra","Venta"],horizontal=True,key="demo_sim_side")
+    _qty=st.number_input("Cantidad de unidades",min_value=0.0,value=100.0,step=1.0,key="demo_sim_qty")
+    _asset=_catalog.set_index("Ticker").loc[_ticker]
+    _unit=float(_asset["Precio USD indicativo"])
+    _held=float(_asset["Cantidad"])
+    _old_value=float(_asset["Valor USD_num"])
+    _delta=_qty*_unit*(1 if _side=="Compra" else -1)
+    _new_qty=_held+_qty*(1 if _side=="Compra" else -1)
+    if _new_qty<0:
+        st.error(f"La venta excede la tenencia ficticia disponible ({_fmt_quantity(_held)} unidades).")
+    else:
+        _new_total=_s["total"]+_delta
+        _new_value=_old_value+_delta
+        _old_weight=_old_value/_s["total"]
+        _new_weight=_new_value/_new_total if _new_total>0 else 0
+        _metrics=st.columns(3)
+        _metrics[0].metric("Impacto bruto",_fmt_usd(_delta))
+        _metrics[1].metric("Nueva tenencia",_fmt_quantity(_new_qty))
+        _metrics[2].metric("Peso nuevo",_fmt_pct(_new_weight),delta=f"{(_new_weight-_old_weight)*100:+.2f} pp")
+        st.caption("Escenario de variación del patrimonio; no descuenta caja. No es una operación ejecutable ni una simulación autofinanciada.")
 else:
-    st.info("Esta función requiere adaptación al inventario V5. No se muestran datos históricos heredados.")
+    st.info("Asesor IA pendiente de adaptación segura al inventario V5. No se muestran datos históricos heredados.")
 st.caption("Fuente: Base DEMO PMS Max / DEMO_INVENTARIO_V5 · no se utilizan posiciones ni históricos de PMS Bersoch.")
 st.stop()
 
