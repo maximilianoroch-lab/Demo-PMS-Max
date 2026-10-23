@@ -41,6 +41,11 @@ class IndependentModelTests(unittest.TestCase):
         raw.loc[0,"Valor USD indicativo"]="1050"
         result=build_independent_model(raw)
         self.assertAlmostEqual(result["summary"]["total"],65050)
+    def test_reject_missing_price(self):
+        a=sample()
+        a.loc[0,"Precio USD indicativo"]=float("nan")
+        with self.assertRaisesRegex(ValueError,"no finitos"):
+            build_independent_model(a)
     def test_reject_partial_inventory(self):
         with self.assertRaisesRegex(ValueError,"incompleto"):build_independent_model(sample().iloc[:-1])
     def test_reject_custody_mismatch(self):
