@@ -21,6 +21,26 @@ class IndependentModelTests(unittest.TestCase):
         result=build_independent_model(sample())
         self.assertEqual(result["summary"]["positions_count"],65)
         self.assertAlmostEqual(result["summary"]["total"],65000)
+    def test_group_totals_reconcile(self):
+        result=build_independent_model(sample())
+        total=result["summary"]["total"]
+        for group in ("by_type","by_region","by_custodian","by_sector"):
+            self.assertAlmostEqual(result[group]["Valor USD_num"].sum(),total)
+        self.assertAlmostEqual(result["summary"]["crypto"]+result["summary"]["non_crypto"],total)
+        self.assertAlmostEqual(result["positions"]["Peso_num"].sum(),1.0)
+    def test_regional_exposures_are_not_generic(self):
+        result=build_independent_model(sample())
+        positions=result["positions"].set_index("Ticker")
+        self.assertEqual(positions.loc["SPY","Región directa"],"Estados Unidos")
+        self.assertEqual(positions.loc["FXI","Región directa"],"China")
+        self.assertEqual(positions.loc["BTC","Región directa"],"Cripto global")
+        self.assertEqual(positions.loc["GGAL","Región directa"],"Argentina")
+    def test_decimal_comma_in_values(self):
+        raw=sample()
+        raw.loc[0,"Precio USD indicativo"]="10,5"
+        raw.loc[0,"Valor USD indicativo"]="1050"
+        result=build_independent_model(raw)
+        self.assertAlmostEqual(result["summary"]["total"],65050)
     def test_reject_partial_inventory(self):
         with self.assertRaisesRegex(ValueError,"incompleto"):build_independent_model(sample().iloc[:-1])
     def test_reject_custody_mismatch(self):
