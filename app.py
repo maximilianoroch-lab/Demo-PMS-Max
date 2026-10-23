@@ -118,8 +118,25 @@ with st.sidebar:
     st.markdown("### IA")
     st.button("Asesor IA",use_container_width=True,key="demo_ia_nav",on_click=_demo_ai_changed)
     st.divider()
-    st.caption("V5 · cartera 100 % ficticia")
-    st.caption("Precios indicativos, no verificados")
+    _demo_tickers=["—"]+sorted(_p["Ticker"].dropna().astype(str).unique().tolist())
+    st.selectbox("Ticker activo (Asesor IA)",_demo_tickers,key="demo_sidebar_ticker",
+        help="Este ticker se comparte con el Asesor IA. No limita la actualización del inventario.")
+    st.caption("La actualización recarga el inventario ficticio V5 completo. No consulta el PMS real.")
+    if st.button("Actualizar toda la cartera",use_container_width=True,key="demo_reload_inventory"):
+        _load_synthetic_demo.clear()
+        st.session_state.pop("demo_technical_data",None)
+        st.session_state.pop("demo_technical_loaded_symbol",None)
+        st.rerun()
+    st.caption("Fuente: Base DEMO PMS Max · inventario V5")
+    st.caption("Valuación: preliminar · cotizaciones no verificadas")
+    try:
+        _demo_has_key=bool(st.secrets.get("OPENAI_API_KEY",""))
+        _demo_model=st.secrets.get("OPENAI_MODEL","gpt-5.6")
+    except Exception:
+        _demo_has_key=False
+        _demo_model="gpt-5.6"
+    st.caption(f"Asesor IA: configurado · {_demo_model}" if _demo_has_key else "Asesor IA: pendiente de API key")
+
 _demo_page=st.session_state.get("demo_current_page","Resumen")
 st.title(_demo_page)
 st.caption("Dashboard analítico de DEMO PMS Max · navegación y contexto de cartera ficticia · precios indicativos")
@@ -266,7 +283,7 @@ elif _demo_page=="Simulador":
         st.caption("Escenario de variación del patrimonio; no descuenta caja. No es una operación ejecutable ni una simulación autofinanciada.")
 elif _demo_page=="Asesor IA":
     st.caption("Asesor de la cartera ficticia V5 · referencias USD indicativas · sin datos heredados.")
-    _selected=st.selectbox("Instrumento",sorted(_p["Ticker"].unique().tolist()),key="demo_advisor_ticker")
+    _selected=st.selectbox("Instrumento",sorted(_p["Ticker"].unique().tolist()),index=(sorted(_p["Ticker"].unique().tolist()).index(st.session_state["demo_sidebar_ticker"]) if st.session_state.get("demo_sidebar_ticker") in _p["Ticker"].values else 0),key="demo_advisor_ticker")
     _ticker_positions=_p.loc[_p["Ticker"]==_selected]
     _exposure=float(_ticker_positions["Valor USD_num"].sum())
     c1,c2,c3=st.columns(3)
