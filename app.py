@@ -1,4 +1,4 @@
-from pms_shared_ui import style_bar as shared_style_bar, fmt_usd as shared_fmt_usd, fmt_pct_fraction as shared_fmt_pct, fmt_number as shared_fmt_number, render_financial_table, render_kpi_card
+from pms_shared_ui import style_bar as shared_style_bar, fmt_usd as shared_fmt_usd, fmt_pct_fraction as shared_fmt_pct, fmt_number as shared_fmt_number, render_financial_table, render_kpi_card, finish_executive_bar
 
 import streamlit as st
 import pandas as pd
@@ -83,6 +83,7 @@ def _bar(df,label,limit=None,color="#79bff2",height=None):
         hovertemplate="<b>%{y}</b><br>Monto: US$ %{x:,.0f}<extra></extra>")
     fig.update_layout(yaxis_title=None,margin=dict(l=8,r=70,t=12,b=12),
         height=height or max(290,len(t)*52+90),showlegend=False)
+    finish_executive_bar(fig)
     st.plotly_chart(fig,width="stretch")
 
 def _table(df):
@@ -214,7 +215,7 @@ elif _demo_page=="Posiciones":
 elif _demo_page=="Diversificación":
     a,b=st.columns(2)
     with a:
-        st.subheader("Regiones directas")
+        st.subheader("Región")
         _bar(_dm["by_region"],"Región directa",color="#79bff2")
     with b:
         st.subheader("Sector")
@@ -233,7 +234,8 @@ elif _demo_page=="Diversificación":
         _etf=_p[_p["Tipo"]=="ETF"].groupby("Ticker",as_index=False)["Valor USD_num"].sum()
         _bar(_etf,"Ticker",8)
 elif _demo_page=="Custodia":
-    st.subheader("Distribución por custodio")
+    st.subheader("Custodia por intermediario")
+    st.caption("Participación patrimonial · cuentas diferenciadas por color · orden de mayor a menor")
     _cust_graph=_p.copy()
     _cust_graph["Grupo"]=_cust_graph["Cuenta"].astype(str)
     _cust_graph["Custodio agregado"]=_cust_graph["Custodio"].astype(str).str.replace(
@@ -252,6 +254,7 @@ elif _demo_page=="Custodia":
     _cust_fig.update_yaxes(categoryorder="array",categoryarray=_cust_order[::-1])
     _cust_fig.update_layout(barmode="stack",height=max(300,65*len(_cust_order)+100),
         margin=dict(l=10,r=10,t=10,b=10),legend_title_text="Cuenta / custodio")
+    finish_executive_bar(_cust_fig,stacked=True)
     st.plotly_chart(_cust_fig,width="stretch")
     _cust_tbl=_dm["by_custodian"].sort_values("Valor USD_num",ascending=False).copy()
     _cust_tbl["Valor USD"]=_cust_tbl["Valor USD_num"].map(_fmt_usd)
