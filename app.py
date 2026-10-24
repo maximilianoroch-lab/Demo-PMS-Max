@@ -213,12 +213,13 @@ elif _demo_page=="Posiciones":
     _z.button("Simular operación",use_container_width=True,key="demo_pos_to_sim",
               on_click=_demo_open_ticker,args=(_focus,"Simulador"),disabled=not _focus_options)
 elif _demo_page=="Diversificación":
+    st.caption("EXPOSICIÓN PATRIMONIAL  ·  composición por región y sector  ·  precios indicativos DEMO")
     a,b=st.columns(2)
     with a:
-        st.subheader("Región")
+        st.subheader("Distribución geográfica")
         _bar(_dm["by_region"],"Región directa",color="#79bff2")
     with b:
-        st.subheader("Sector")
+        st.subheader("Distribución sectorial")
         _bar(_dm["by_sector"],"Sector",color="#4f8fc7")
     c,d=st.columns(2)
     with c:
