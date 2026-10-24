@@ -84,6 +84,7 @@ def _bar(df,label,limit=None,color="#79bff2",height=None):
     fig.update_layout(yaxis_title=None,margin=dict(l=8,r=70,t=12,b=12),
         height=height or max(290,len(t)*52+90),showlegend=False)
     finish_executive_bar(fig)
+    fig.update_layout(height=height or max(330,len(t)*58+100),margin=dict(l=14,r=96,t=24,b=44))
     st.plotly_chart(fig,width="stretch")
 
 def _table(df):
@@ -256,6 +257,7 @@ elif _demo_page=="Custodia":
     _cust_fig.update_layout(barmode="stack",height=max(300,65*len(_cust_order)+100),
         margin=dict(l=10,r=10,t=10,b=10),legend_title_text="Cuenta / custodio")
     finish_executive_bar(_cust_fig,stacked=True)
+    _cust_fig.update_layout(height=max(385,75*len(_cust_order)+135),margin=dict(l=15,r=34,t=24,b=115))
     st.plotly_chart(_cust_fig,width="stretch")
     _cust_tbl=_dm["by_custodian"].sort_values("Valor USD_num",ascending=False).copy()
     _cust_tbl["Valor USD"]=_cust_tbl["Valor USD_num"].map(_fmt_usd)
