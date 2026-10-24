@@ -271,7 +271,43 @@ elif _demo_page=="Riesgo":
           "Estado":["HISTORIAL INSUFICIENTE"]*3,
           "Interpretación":["Se habilitará con cierres diarios independientes","Requiere una serie propia de patrimonio","Requiere suficientes observaciones comparables"]}))
 elif _demo_page=="Evolución":
-    st.info("Evolución y rentabilidades desactivadas hasta disponer de snapshots y flujos ficticios independientes.")
+    from demo_history import load_history,load_asset_history,top15_daily
+    _history=load_history()
+    _asset_history=load_asset_history()
+    st.subheader("Cambio entre snapshots")
+    st.caption("Serie DEMO independiente · precios indicativos V5. Los cambios patrimoniales NO son rentabilidad.")
+    if _history.empty:
+        st.info("Aún no se registró el primer cierre diario independiente. La captura automática está programada.")
+    else:
+        _history["Cambio USD"]=_history["Patrimonio USD"].diff()
+        _history["Cambio %"]=_history["Patrimonio USD"].pct_change()*100
+        _last=_history.iloc[-1]
+        _c=st.columns(3)
+        _c[0].metric("Último patrimonio",_fmt_usd(_last["Patrimonio USD"]))
+        _c[1].metric("Cambio USD",_fmt_usd(_last["Cambio USD"]))
+        _c[2].metric("Cambio %",shared_fmt_number(_last["Cambio %"],1)+"%" if pd.notna(_last["Cambio %"]) else "—")
+        if len(_history)>1:
+            st.caption("Del "+_history.iloc[-2]["Fecha"].strftime("%d/%m/%Y")+" al "+_last["Fecha"].strftime("%d/%m/%Y")+
+                " · variación de patrimonio sin ajuste de flujos.")
+        _display=_history.sort_values("Fecha",ascending=False).copy()
+        _display["Fecha"]=_display["Fecha"].dt.strftime("%d/%m/%Y")
+        _display["Patrimonio USD"]=_display["Patrimonio USD"].map(_fmt_usd)
+        _display["Cambio USD"]=_display["Cambio USD"].map(_fmt_usd)
+        _display["Cambio %"]=_display["Cambio %"].map(lambda v:shared_fmt_number(v,1)+"%" if pd.notna(v) else "—")
+        _table(_display[["Fecha","Patrimonio USD","Cambio USD","Cambio %"]])
+        _fig=px.line(_history,x="Fecha",y="Patrimonio USD",markers=True,
+            labels={"Fecha":"Fecha","Patrimonio USD":"Patrimonio USD"})
+        _fig.update_layout(height=420,margin=dict(l=10,r=10,t=15,b=15))
+        st.plotly_chart(_fig,width="stretch")
+        st.caption(f"{len(_history)} cierres disponibles · no se interpolan fechas sin observación.")
+    st.subheader("Variación diaria · principales 15 instrumentos")
+    _top=top15_daily(_p,_asset_history)
+    _top["Valor USD"]=_top["Valor USD_num"].map(_fmt_usd)
+    _top["Cambio diario USD"]=_top["Cambio USD"].map(_fmt_usd)
+    _top["Cambio diario %"]=_top["Cambio %"].map(lambda v:shared_fmt_number(v,2)+"%" if pd.notna(v) else "—")
+    _table(_top[["Ticker","Valor USD","Cambio diario USD","Cambio diario %"]])
+    if len(_asset_history["Fecha"].unique())<2:
+        st.caption("Las variaciones aparecen después del segundo cierre registrado; no se imputan datos históricos inexistentes.")
 elif _demo_page=="Comparar":
     st.subheader("Comparar activos de DEMO")
     st.caption("Comparación de posiciones, valuación y peso de cartera; los precios son referencias indicativas.")
