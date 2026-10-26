@@ -1,6 +1,7 @@
 """Persisted DEMO V5 daily observations. Prices are indicative, NOT market returns."""
 from pathlib import Path
-from datetime import date
+from datetime import datetime
+from zoneinfo import ZoneInfo
 import pandas as pd
 
 ROOT=Path(__file__).resolve().parent
@@ -8,7 +9,7 @@ HISTORY=ROOT/"data"/"demo_daily_snapshots.csv"
 ASSETS=ROOT/"data"/"demo_daily_assets.csv"
 
 def snapshot_frames(model, day=None):
-    day=str(day or date.today())
+    day=str(day or datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")).date())
     positions=model["positions"]
     total=float(model["summary"]["total"])
     overview=pd.DataFrame([{"Fecha":day,"Patrimonio USD":round(total,6),
@@ -49,6 +50,7 @@ def top15_daily(positions,history):
     latest=history.loc[history["Fecha"]==dates[-1],["Ticker","Valor USD"]].set_index("Ticker")["Valor USD"]
     previous=history.loc[history["Fecha"]==dates[-2],["Ticker","Valor USD"]].set_index("Ticker")["Valor USD"]
     # Comparar sólo fechas consecutivas de observación; no inventar cierres faltantes.
+    # La variación es entre dos cierres observados, no necesariamente días contiguos.
     current["Cambio USD"]=current["Ticker"].map(latest-previous)
     current["Cambio %"]=current["Ticker"].map(((latest/previous)-1)*100)
     return current
