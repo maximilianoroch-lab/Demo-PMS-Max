@@ -55,8 +55,13 @@ def top15_daily(positions,history):
     previous=history.loc[history["Fecha"]==dates[-2],["Ticker","Valor USD"]].set_index("Ticker")["Valor USD"]
     # Comparar sólo fechas consecutivas de observación; no inventar cierres faltantes.
     # La variación es entre dos cierres observados, no necesariamente días contiguos.
-    current["Cambio USD"]=current["Ticker"].map(latest-previous)
-    current["Cambio %"]=current["Ticker"].map(((latest/previous)-1)*100)
+    common=latest.index.intersection(previous.index)
+    valid=previous.loc[common].gt(0) & latest.loc[common].ge(0)
+    comparable=common[valid]
+    usd_change=latest.loc[comparable]-previous.loc[comparable]
+    pct_change=(latest.loc[comparable]/previous.loc[comparable]-1)*100
+    current["Cambio USD"]=current["Ticker"].map(usd_change)
+    current["Cambio %"]=current["Ticker"].map(pct_change)
     return current
 
 if __name__=="__main__":
