@@ -39,6 +39,11 @@ class DemoHistoryTests(unittest.TestCase):
   history=pd.DataFrame({"Fecha":pd.to_datetime(["2026-10-20","2026-10-24"]),"Ticker":["AAPL","AAPL"],"Valor USD":[100,130]})
   result=h.top15_daily(p,history)
   self.assertAlmostEqual(result.iloc[0]["Cambio USD"],30)
+ def test_snapshot_rejects_unreconciled_total(self):
+  portfolio=pd.DataFrame({"Ticker":["AAPL","SPY"],"Valor USD_num":[100,200]})
+  model={"positions":portfolio,"summary":{"total":310,"positions_count":2}}
+  with self.assertRaisesRegex(ValueError,"no concilia"):
+   h.snapshot_frames(model,"2026-10-24")
  def test_daily_total_matches_asset_sum(self):
   portfolio=pd.DataFrame({"Ticker":["AAPL","SPY"],"Valor USD_num":[100,200]})
   model={"positions":portfolio,"summary":{"total":300,"positions_count":2}}
