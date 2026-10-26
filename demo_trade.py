@@ -7,6 +7,9 @@ def simulate_demo_trade(positions,ticker,operation,amount,funding="CASH",source=
     import math
     if not all(math.isfinite(x) for x in h.values()) or not math.isfinite(amount) or not math.isfinite(cash_amount):
         return {"error":"Los importes deben ser números finitos."}
+    if any(v<0 for v in h.values()):
+        return {"error":"La cartera contiene posiciones negativas; no es seguro simular."}
+    if cash_amount<0:return {"error":"El uso de CASH no puede ser negativo."}
     if amount<=0:return {"error":"El monto debe ser positivo."}
     if ticker=="CASH" or ticker not in h:return {"error":"Elegí un activo válido distinto de CASH."}
     if operation not in ("Comprar","Vender"):return {"error":"Operación no válida."}
