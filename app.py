@@ -430,6 +430,10 @@ elif _demo_page=="Asesor IA":
         def _demo_get_technical(symbol):
             from technical import fetch_history
             return fetch_history(symbol)
+        if not _history_symbol:
+            st.session_state.pop("demo_technical_data",None)
+            st.session_state.pop("demo_technical_error",None)
+            st.session_state["demo_technical_loaded_symbol"]=""
         if _history_symbol and st.session_state.get("demo_technical_loaded_symbol")!=_history_symbol:
             st.session_state["demo_technical_loaded_symbol"]=_history_symbol
             st.session_state.pop("demo_technical_data",None)
@@ -446,7 +450,12 @@ elif _demo_page=="Asesor IA":
             _days={"6M":183,"1A":365,"3A":1095,"5A":1827}[_window]
             _shown=_hist.loc[_hist.index>=_hist.index.max()-pd.Timedelta(days=_days)]
             st.plotly_chart(px.line(_shown,y=["Close","EMA 21","EMA 50","EMA 200"]),width="stretch")
-            st.plotly_chart(px.line(_shown,y="RSI 14"),width="stretch")
+            _rsi_fig=px.line(_shown,y="RSI 14",labels={"value":"RSI 14","index":"Fecha"})
+            _rsi_fig.add_hline(y=70,line_dash="dash",line_color="#df9c5a")
+            _rsi_fig.add_hline(y=30,line_dash="dash",line_color="#74b7aa")
+            _rsi_fig.update_yaxes(range=[0,100])
+            _rsi_fig.update_layout(height=190,showlegend=False)
+            st.plotly_chart(_rsi_fig,width="stretch")
             _last=_hist.iloc[-1]
             def _tech_num(value):
                 return float(value) if pd.notna(value) else None
