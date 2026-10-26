@@ -18,6 +18,10 @@ def snapshot_frames(model, day=None):
     assets=positions.groupby("Ticker",as_index=False)["Valor USD_num"].sum()
     assets=assets.rename(columns={"Valor USD_num":"Valor USD"})
     assets.insert(0,"Fecha",day)
+    if abs(float(assets["Valor USD"].sum())-total)>max(0.02,total*0.000001):
+        raise ValueError("Snapshot DEMO no concilia con el detalle de activos")
+    if not pd.notna(total) or total<=0:
+        raise ValueError("Snapshot DEMO con patrimonio inválido")
     return overview,assets
 
 def upsert_csv(frame,path,keys):
