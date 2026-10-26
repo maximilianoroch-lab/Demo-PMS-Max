@@ -328,6 +328,12 @@ elif _demo_page=="Comparar":
     if _ticker_a==_ticker_b:
         st.warning("Seleccioná dos instrumentos diferentes.")
     else:
+        from pms_compare import compare_portfolio_positions
+        _shared_cmp=compare_portfolio_positions(_p,_ticker_a,_ticker_b,_s["total"])
+        _shared_cmp["Valor USD"]=_shared_cmp["Valor USD"].map(_fmt_usd)
+        _shared_cmp["Peso cartera"]=_shared_cmp["Peso cartera"].map(_fmt_pct)
+        st.caption("Comparación patrimonial homologada · valores ficticios indicativos")
+        _table(_shared_cmp[["Ticker","Tipo","Valor USD","Peso cartera"]])
         _view=_asset.set_index("Ticker")
         _comparison=[]
         for _field,_label,_format in [("Tipo","Tipo",str),("Sector","Sector",str),
