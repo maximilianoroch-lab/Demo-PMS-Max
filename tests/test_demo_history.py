@@ -44,6 +44,14 @@ class DemoHistoryTests(unittest.TestCase):
   model={"positions":portfolio,"summary":{"total":310,"positions_count":2}}
   with self.assertRaisesRegex(ValueError,"no concilia"):
    h.snapshot_frames(model,"2026-10-24")
+ def test_top15_missing_or_zero_previous_is_not_a_return(self):
+  positions=pd.DataFrame({"Ticker":["AAPL","SPY","QQQ"],"Valor USD_num":[150,90,80]})
+  history=pd.DataFrame({"Fecha":pd.to_datetime(["2026-10-23","2026-10-23","2026-10-24","2026-10-24","2026-10-24"]),
+   "Ticker":["AAPL","SPY","AAPL","SPY","QQQ"],"Valor USD":[100,0,150,90,80]})
+  got=h.top15_daily(positions,history).set_index("Ticker")
+  self.assertAlmostEqual(got.loc["AAPL","Cambio %"],50)
+  self.assertTrue(pd.isna(got.loc["SPY","Cambio %"]))
+  self.assertTrue(pd.isna(got.loc["QQQ","Cambio USD"]))
  def test_daily_total_matches_asset_sum(self):
   portfolio=pd.DataFrame({"Ticker":["AAPL","SPY"],"Valor USD_num":[100,200]})
   model={"positions":portfolio,"summary":{"total":300,"positions_count":2}}
