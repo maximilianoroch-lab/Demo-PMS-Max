@@ -27,6 +27,18 @@ class DemoHistoryTests(unittest.TestCase):
   a=result.set_index("Ticker").loc["AAPL"]
   self.assertAlmostEqual(a["Cambio USD"],10)
   self.assertAlmostEqual(a["Cambio %"],10)
+ def test_snapshot_uses_buenos_aires_date(self):
+  from datetime import datetime
+  from zoneinfo import ZoneInfo
+  portfolio=pd.DataFrame({"Ticker":["SPY"],"Valor USD_num":[123.0]})
+  model={"positions":portfolio,"summary":{"total":123,"positions_count":1}}
+  snapshot,_=h.snapshot_frames(model)
+  self.assertEqual(snapshot.iloc[0]["Fecha"],str(datetime.now(ZoneInfo("America/Argentina/Buenos_Aires")).date()))
+ def test_top15_uses_latest_observed_pair(self):
+  p=pd.DataFrame({"Ticker":["AAPL"],"Valor USD_num":[130]})
+  history=pd.DataFrame({"Fecha":pd.to_datetime(["2026-10-20","2026-10-24"]),"Ticker":["AAPL","AAPL"],"Valor USD":[100,130]})
+  result=h.top15_daily(p,history)
+  self.assertAlmostEqual(result.iloc[0]["Cambio USD"],30)
  def test_daily_total_matches_asset_sum(self):
   portfolio=pd.DataFrame({"Ticker":["AAPL","SPY"],"Valor USD_num":[100,200]})
   model={"positions":portfolio,"summary":{"total":300,"positions_count":2}}
