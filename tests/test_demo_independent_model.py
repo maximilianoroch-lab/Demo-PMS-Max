@@ -37,6 +37,7 @@ class IndependentModelTests(unittest.TestCase):
         self.assertEqual(positions.loc["GGAL","Región directa"],"Argentina")
     def test_decimal_comma_in_values(self):
         raw=sample()
+        raw["Precio USD indicativo"]=raw["Precio USD indicativo"].astype(str)
         raw.loc[0,"Precio USD indicativo"]="10,5"
         raw.loc[0,"Valor USD indicativo"]="1050"
         result=build_independent_model(raw)
@@ -53,7 +54,8 @@ class IndependentModelTests(unittest.TestCase):
         a.loc[0,"Cantidad total"]=101
         with self.assertRaises(ValueError):build_independent_model(a)
     def test_reject_duplicate_tickers(self):
-        a=pd.concat([sample()]*11,ignore_index=True).iloc[:65]
+        a=sample()
+        a.loc[1,"Ticker"]=a.loc[0,"Ticker"
         with self.assertRaises(ValueError):build_independent_model(a)
 
 if __name__=="__main__":unittest.main()
