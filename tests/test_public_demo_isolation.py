@@ -11,10 +11,11 @@ class PublicDemoIsolationTests(unittest.TestCase):
     def test_public_entrypoint_stops_before_legacy_feed(self):
         src=(ROOT/"app.py").read_text(encoding="utf-8")
         begin=src.index('from demo_independent_model import build_independent_model')
-        stop=src.index('st.markdown("""\\n<style>') if 'st.markdown("""\\n<style>' in src else src.index('st.markdown("""\n<style>')
+        stop=src.index('st.caption("Fuente: Base DEMO PMS Max / DEMO_INVENTARIO_V5',begin)
+        legacy=src.index("data=get_data()",stop)
         self.assertLess(begin,stop)
-        self.assertIn("st.stop()",src[begin:stop])
-        self.assertGreater(src.index("data=get_data()"),stop)
+        self.assertIn("st.stop()",src[stop:legacy])
+        self.assertGreater(legacy,stop)
     def test_no_scaled_mode(self):
         config=(ROOT/"portfolio_config.py").read_text(encoding="utf-8")
         data=(ROOT/"data.py").read_text(encoding="utf-8")
