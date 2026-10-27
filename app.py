@@ -374,11 +374,16 @@ elif _demo_page=="Comparar":
                 _rows=[]
                 for _metric in _metrics:
                     if not isinstance(_metric,dict):continue
+                    _source_a=str(_metric.get("source_a") or "").strip()
+                    _source_b=str(_metric.get("source_b") or "").strip()
+                    _verified=(_metric.get("comparable") is True and bool(_metric.get("period_a"))
+                               and bool(_metric.get("period_b")) and _source_a.startswith("https://")
+                               and _source_b.startswith("https://"))
                     _rows.append({"Indicador":_metric.get("indicator","—"),
                         _ticker_a:_metric.get("a") if _metric.get("a") is not None else "—",
                         _ticker_b:_metric.get("b") if _metric.get("b") is not None else "—",
                         "Unidad":_metric.get("unit",""),
-                        "Comparable":("Sí" if _metric.get("comparable") is True else "No verificado"),
+                        "Comparable":("Respaldado" if _verified else "No verificado"),
                         "Período A":_metric.get("period_a") or "—",
                         "Período B":_metric.get("period_b") or "—",
                         "Fuente A":_metric.get("source_a") or "No disponible",
