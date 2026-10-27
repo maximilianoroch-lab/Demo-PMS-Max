@@ -15,6 +15,8 @@ def simulate_demo_trade(positions,ticker,operation,amount,funding="CASH",source=
     if operation not in ("Comprar","Vender"):return {"error":"Operación no válida."}
     before=h.copy()
     total=sum(before.values())
+    if not math.isfinite(total) or total<=0:
+        return {"error":"El patrimonio inicial debe ser positivo."}
     cash_before=h.get("CASH",0.0)
     value_before=h[ticker]
     source_before=h.get(source,0.0) if source else 0.0
@@ -25,12 +27,12 @@ def simulate_demo_trade(positions,ticker,operation,amount,funding="CASH",source=
             return {"error":"Origen de fondos inválido."}
         used=amount if funding=="CASH" else cash_amount if funding=="CASH + venta de activo" else 0.0
         if used<0 or used>amount:return {"error":"Uso de CASH fuera del monto de compra."}
-        if used>cash_before+0.005:return {"error":"CASH insuficiente para la compra."}
+        if used>cash_before:return {"error":"CASH insuficiente para la compra."}
         sale_used=amount-used if funding in ("Venta de otro activo","CASH + venta de activo") else 0.0
         if sale_used:
             if not source or source in (ticker,"CASH") or source not in h:
                 return {"error":"Elegí otro activo válido para financiar."}
-            if sale_used>source_before+0.005:
+            if sale_used>source_before:
                 return {"error":"La venta del activo de origen excede su tenencia."}
             h[source]-=sale_used
             source_out=source
@@ -40,7 +42,7 @@ def simulate_demo_trade(positions,ticker,operation,amount,funding="CASH",source=
     else:
         if funding not in ("CASH","Retiro externo"):
             return {"error":"Destino de fondos inválido."}
-        if amount>value_before+0.005:return {"error":"La venta excede la posición disponible."}
+        if amount>value_before:return {"error":"La venta excede la posición disponible."}
         h[ticker]-=amount
         if funding=="CASH":h["CASH"]=cash_before+amount
         new_total=total-(amount if funding=="Retiro externo" else 0.0)
