@@ -378,7 +378,11 @@ elif _demo_page=="Comparar":
                         _ticker_a:_metric.get("a") if _metric.get("a") is not None else "—",
                         _ticker_b:_metric.get("b") if _metric.get("b") is not None else "—",
                         "Unidad":_metric.get("unit",""),
-                        "Comparable":("Sí" if _metric.get("comparable") is True else "No verificado")})
+                        "Comparable":("Sí" if _metric.get("comparable") is True else "No verificado"),
+                        "Período A":_metric.get("period_a") or "—",
+                        "Período B":_metric.get("period_b") or "—",
+                        "Fuente A":_metric.get("source_a") or "No disponible",
+                        "Fuente B":_metric.get("source_b") or "No disponible"})
                 if _rows:_table(pd.DataFrame(_rows))
             for _bullet in (_fundamental.get("bullets") or []):
                 st.markdown("- "+str(_bullet))
