@@ -19,7 +19,8 @@ class PortfolioIsolationTests(unittest.TestCase):
 
     def test_independent_mode_has_no_scaling(self):
         code = (ROOT / "data.py").read_text(encoding="utf-8")
-        self.assertIn('if DATA_MODE == "demo_legacy_scaled" else 1.0', code)
+        self.assertIn('if DATA_MODE != "independent":', code)
+        self.assertNotIn('if DATA_MODE == "demo_legacy_scaled" else 1.0', code)
         self.assertIn('"history_mode") == "none"', code)
         self.assertIn('optional_feeds', code)
 
