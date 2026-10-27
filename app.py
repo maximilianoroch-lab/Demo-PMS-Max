@@ -425,6 +425,8 @@ elif _demo_page=="Asesor IA":
             st.session_state.pop("demo_advisor_answer",None)
             st.session_state["demo_advisor_question"]=f"Analizá {_selected} dentro de esta cartera ficticia, fundamentos, riesgos y contexto técnico verificable."
         _history_symbol=st.text_input("Símbolo de mercado",key="demo_advisor_symbol").strip().upper()
+        if _history_symbol and _history_symbol!=_selected:
+            st.info(f"El gráfico corresponde a {_history_symbol}, no a la posición {_selected}. Para evitar asociar especies distintas, el Asesor IA no recibirá estos indicadores como si fueran los de {_selected}.")
         _window=st.radio("Ventana",["6M","1A","3A","5A"],index=3,horizontal=True,key="demo_technical_window")
         @st.cache_data(ttl=3600,show_spinner=False)
         def _demo_get_technical(symbol):
