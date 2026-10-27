@@ -344,15 +344,20 @@ elif _demo_page=="Evolución":
         from pms_evolution import observed_window
         _period=st.segmented_control("Período observado",["1M","3M","6M","1A","3A","5A","Todo"],default="Todo",key="demo_evolution_period")
         _visible_history=observed_window(_history,"Fecha",_period or "Todo")
+        st.caption(f"Cobertura: {len(_visible_history)} de {len(_history)} cierres observados. No se completan fechas faltantes.")
         if len(_visible_history)>1:
             _first,_end=_visible_history.iloc[0],_visible_history.iloc[-1]
             _difference=float(_end["Patrimonio USD"]-_first["Patrimonio USD"])
             st.metric("Cambio patrimonial entre extremos observados",_fmt_usd(_difference))
             st.caption("Desde "+_first["Fecha"].strftime("%d/%m/%Y")+" hasta "+_end["Fecha"].strftime("%d/%m/%Y")+" · incluye aportes/retiros no identificados; no es rentabilidad.")
-        _fig=px.line(_visible_history,x="Fecha",y="Patrimonio USD",markers=True,
-            labels={"Fecha":"Fecha","Patrimonio USD":"Patrimonio USD"})
-        _fig.update_layout(height=420,margin=dict(l=10,r=10,t=15,b=15))
-        st.plotly_chart(_fig,width="stretch")
+        if _visible_history.empty:
+            st.info("No hay cierres observados para el período seleccionado.")
+        else:
+            _fig=px.line(_visible_history,x="Fecha",y="Patrimonio USD",markers=True,
+                labels={"Fecha":"Fecha","Patrimonio USD":"Patrimonio USD"})
+            _fig.update_layout(height=420,margin=dict(l=10,r=10,t=15,b=15))
+            _fig.update_yaxes(autorange=True,rangemode="tozero")
+            st.plotly_chart(_fig,width="stretch")
         st.caption(f"{len(_visible_history)} cierres observados en el período · {len(_history)} en total. No se interpolan fechas sin observación.")
     st.subheader("Variación entre cierres · principales 15 instrumentos")
     st.caption("Comparación de los dos últimos cierres observados; si faltan fechas intermedias, NO equivale a variación de un día.")
