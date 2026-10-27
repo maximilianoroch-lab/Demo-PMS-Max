@@ -39,7 +39,7 @@ class IndependentModelTests(unittest.TestCase):
         raw=sample()
         raw["Precio USD indicativo"]=raw["Precio USD indicativo"].astype(str)
         raw.loc[0,"Precio USD indicativo"]="10,5"
-        raw.loc[0,"Valor USD indicativo"]="1050"
+        raw.loc[0,"Valor USD indicativo"]=1050
         result=build_independent_model(raw)
         self.assertAlmostEqual(result["summary"]["total"],65050)
     def test_reject_missing_price(self):
