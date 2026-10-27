@@ -47,6 +47,8 @@ class DemoAdvisorIsolation(unittest.TestCase):
   self.assertIn('compare_companies_structured(',section)
   self.assertIn('"app_feed_v2":_cmp_app',section)
   self.assertIn('"looker_feed_v2":_p.copy()',section)
+  for field in ("period_a","period_b","source_a","source_b"):
+   self.assertIn('_metric.get("'+field+'")',section)
   self.assertIn('st.session_state.pop("demo_fundamental_result",None)',section)
   self.assertNotIn('get_data()',section)
  def test_cross_module_navigation(self):
