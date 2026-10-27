@@ -301,11 +301,14 @@ elif _demo_page=="Evolución":
         _display["Cambio USD"]=_display["Cambio USD"].map(_fmt_usd)
         _display["Cambio %"]=_display["Cambio %"].map(lambda v:shared_fmt_number(v,1)+"%" if pd.notna(v) else "—")
         _table(_display[["Fecha","Patrimonio USD","Cambio USD","Cambio %"]])
-        _fig=px.line(_history,x="Fecha",y="Patrimonio USD",markers=True,
+        from pms_evolution import observed_window
+        _period=st.segmented_control("Período observado",["1M","3M","6M","1A","3A","5A","Todo"],default="Todo",key="demo_evolution_period")
+        _visible_history=observed_window(_history,"Fecha",_period or "Todo")
+        _fig=px.line(_visible_history,x="Fecha",y="Patrimonio USD",markers=True,
             labels={"Fecha":"Fecha","Patrimonio USD":"Patrimonio USD"})
         _fig.update_layout(height=420,margin=dict(l=10,r=10,t=15,b=15))
         st.plotly_chart(_fig,width="stretch")
-        st.caption(f"{len(_history)} cierres disponibles · no se interpolan fechas sin observación.")
+        st.caption(f"{len(_visible_history)} cierres observados en el período · {len(_history)} en total. No se interpolan fechas sin observación.")
     st.subheader("Variación entre cierres · principales 15 instrumentos")
     st.caption("Comparación de los dos últimos cierres observados; si faltan fechas intermedias, NO equivale a variación de un día.")
     _top=top15_daily(_p,_asset_history)
