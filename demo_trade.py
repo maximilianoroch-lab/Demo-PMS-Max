@@ -1,10 +1,13 @@
 """Simulaciones puras sobre tenencias DEMO V5; nunca modifica inventario."""
 def simulate_demo_trade(positions,ticker,operation,amount,funding="CASH",source=None,cash_amount=0):
-    h={str(k):float(v) for k,v in positions.items()}
-    ticker=str(ticker)
-    amount=float(amount)
-    cash_amount=float(cash_amount)
     import math
+    try:
+        h={str(k):float(v) for k,v in positions.items()}
+        ticker=str(ticker)
+        amount=float(amount)
+        cash_amount=float(cash_amount)
+    except (TypeError,ValueError,OverflowError):
+        return {"error":"Los importes deben ser numéricos."}
     if not all(math.isfinite(x) for x in h.values()) or not math.isfinite(amount) or not math.isfinite(cash_amount):
         return {"error":"Los importes deben ser números finitos."}
     if any(v<0 for v in h.values()):
@@ -46,7 +49,8 @@ def simulate_demo_trade(positions,ticker,operation,amount,funding="CASH",source=
         h[ticker]-=amount
         if funding=="CASH":h["CASH"]=cash_before+amount
         new_total=total-(amount if funding=="Retiro externo" else 0.0)
-    if new_total<=0:return {"error":"El patrimonio resultante no es válido."}
+    if not math.isfinite(new_total) or new_total<=0 or any(not math.isfinite(v) or v<0 for v in h.values()):
+        return {"error":"El patrimonio o las posiciones resultantes no son válidos."}
     if abs(sum(h.values())-new_total)>0.01:return {"error":"No concilian los fondos simulados."}
     def top5(d,t):return sum(sorted((max(0,v) for v in d.values()),reverse=True)[:5])/t
     return {"ticker":ticker,"operation":operation,"amount":amount,"funding":funding,
