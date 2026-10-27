@@ -55,7 +55,7 @@ class IndependentModelTests(unittest.TestCase):
         with self.assertRaises(ValueError):build_independent_model(a)
     def test_reject_duplicate_tickers(self):
         a=sample()
-        a.loc[1,"Ticker"]=a.loc[0,"Ticker"
+        a.loc[1,"Ticker"]=a.loc[0,"Ticker"]
         with self.assertRaises(ValueError):build_independent_model(a)
 
 if __name__=="__main__":unittest.main()
