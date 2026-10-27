@@ -34,6 +34,12 @@ class DemoAdvisorIsolation(unittest.TestCase):
   self.assertIn('_rsi_fig.update_yaxes(range=[0,100])',active)
   self.assertIn('if not _history_symbol:',active)
   self.assertIn('st.session_state.pop("demo_technical_data",None)',active)
+ def test_market_symbol_mismatch_is_visible(self):
+  code=(ROOT/"app.py").read_text(encoding="utf-8")
+  active=code[code.index('elif _demo_page=="Asesor IA":'):code.index('st.caption("Fuente: Base DEMO PMS Max / DEMO_INVENTARIO_V5')]
+  self.assertIn('if _history_symbol and _history_symbol!=_selected:',active)
+  self.assertIn('el Asesor IA no recibirá estos indicadores',active)
+  self.assertIn('technical_snapshot=_snapshot',active)
  def test_cross_module_navigation(self):
   code=(ROOT/"app.py").read_text(encoding="utf-8")
   self.assertIn('def _demo_open_ticker(ticker,page):',code)
