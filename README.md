@@ -194,3 +194,9 @@ Fix de arranque en Streamlit: `apply_analysis_context()` ahora se define antes d
 - En Diversificación, el cuadro de ETFs pasa de donut a barras/progreso tipo `ETFs principales`.
 - ETFs ordenados de mayor a menor por valor.
 - GLD se incluye como ETF por vehículo, aunque permanece Oro en la composición principal.
+
+## Alcance de Evolución y exposición indirecta
+- Evolución utiliza únicamente cierres observados; no interpola datos faltantes ni presenta cambios patrimoniales como rentabilidad.
+- El cálculo de solapamiento de ETF requiere un archivo `etf_top_holdings.csv` con columnas `ETF, Constituyente, Peso ETF, Fuente, Fecha`; los pesos se expresan como fracciones de 0 a 1 y la fecha debe ser verificable.
+- Sin composición documentada, el análisis informa que no hay datos suficientes; no supone exposición indirecta nula.
+- El despliegue real y el de demostración conservan fuentes y sesiones independientes.
