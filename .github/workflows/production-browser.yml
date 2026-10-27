@@ -1,0 +1,24 @@
+name: Production browser UI checks
+on:
+  push:
+    branches: [main]
+    paths: ['tests/prod_browser_smoke.py', '.github/workflows/production-browser.yml']
+  workflow_dispatch:
+jobs:
+  browser-smoke:
+    runs-on: ubuntu-latest
+    timeout-minutes: 12
+    steps:
+      - uses: actions/checkout@v4
+      - uses: actions/setup-python@v5
+        with:
+          python-version: '3.11'
+      - run: pip install playwright
+      - run: python -m playwright install --with-deps chromium
+      - run: python tests/prod_browser_smoke.py
+      - if: always()
+        uses: actions/upload-artifact@v4
+        with:
+          name: production-browser-captures
+          path: smoke_*.png
+          if-no-files-found: ignore
