@@ -322,6 +322,11 @@ elif _demo_page=="Evolución":
         from pms_evolution import observed_window
         _period=st.segmented_control("Período observado",["1M","3M","6M","1A","3A","5A","Todo"],default="Todo",key="demo_evolution_period")
         _visible_history=observed_window(_history,"Fecha",_period or "Todo")
+        if len(_visible_history)>1:
+            _first,_end=_visible_history.iloc[0],_visible_history.iloc[-1]
+            _difference=float(_end["Patrimonio USD"]-_first["Patrimonio USD"])
+            st.metric("Cambio patrimonial entre extremos observados",_fmt_usd(_difference))
+            st.caption("Desde "+_first["Fecha"].strftime("%d/%m/%Y")+" hasta "+_end["Fecha"].strftime("%d/%m/%Y")+" · incluye aportes/retiros no identificados; no es rentabilidad.")
         _fig=px.line(_visible_history,x="Fecha",y="Patrimonio USD",markers=True,
             labels={"Fecha":"Fecha","Patrimonio USD":"Patrimonio USD"})
         _fig.update_layout(height=420,margin=dict(l=10,r=10,t=15,b=15))
