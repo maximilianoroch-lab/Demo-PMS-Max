@@ -222,6 +222,24 @@ elif _demo_page=="Diversificación":
     with b:
         st.subheader("Distribución sectorial")
         _bar(_dm["by_sector"],"Sector",color="#4f8fc7")
+    st.markdown("#### Explorar la exposición directa")
+    _da,_db=st.columns(2)
+    _region=_da.selectbox("Región",["Todas"]+sorted(_p["Región directa"].dropna().unique().tolist()),key="demo_exposure_region")
+    _sector=_db.selectbox("Sector",["Todos"]+sorted(_p["Sector"].dropna().unique().tolist()),key="demo_exposure_sector")
+    _drill=_p.copy()
+    if _region!="Todas":_drill=_drill.loc[_drill["Región directa"]==_region]
+    if _sector!="Todos":_drill=_drill.loc[_drill["Sector"]==_sector]
+    _drill=_drill.groupby("Ticker",as_index=False)["Valor USD_num"].sum().sort_values("Valor USD_num",ascending=False)
+    _drill["Valor USD"]=_drill["Valor USD_num"].map(_fmt_usd)
+    _drill["Peso cartera"]=_drill["Valor USD_num"].div(_s["total"]).map(_fmt_pct)
+    st.caption("Exposición directa filtrada, sin atribuir a los ETF sus componentes no verificados.")
+    _table(_drill[["Ticker","Valor USD","Peso cartera"]])
+    if not _drill.empty:
+        _focus=st.selectbox("Analizar instrumento de la exposición",_drill["Ticker"].tolist(),key="demo_exposure_focus")
+        _i,_j,_k=st.columns(3)
+        _i.button("Asesor IA",key="demo_exposure_to_ai",use_container_width=True,on_click=_demo_open_ticker,args=(_focus,"Asesor IA"))
+        _j.button("Comparar",key="demo_exposure_to_cmp",use_container_width=True,on_click=_demo_open_ticker,args=(_focus,"Comparar"))
+        _k.button("Simulador",key="demo_exposure_to_sim",use_container_width=True,on_click=_demo_open_ticker,args=(_focus,"Simulador"))
     c,d=st.columns(2)
     with c:
         st.subheader("Cripto vs cartera convencional")
