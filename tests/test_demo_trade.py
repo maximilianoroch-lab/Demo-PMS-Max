@@ -42,6 +42,12 @@ class Trades(unittest.TestCase):
   self.assertIn("error",self.case("Comprar",float("nan"),"CASH"))
  def test_reject_negative_cash_contribution(self):
   self.assertIn("error",self.case("Comprar",200,"CASH + venta de activo","SPY",-10))
+ def test_zero_nav_rejected_without_division_error(self):
+  self.assertIn("error",simulate_demo_trade({"AAPL":0,"CASH":0},"AAPL","Comprar",10,"Aporte externo"))
+ def test_no_tolerance_allows_negative_cash(self):
+  self.assertIn("error",simulate_demo_trade({"AAPL":10,"CASH":1},"AAPL","Comprar",1.004,"CASH"))
+ def test_no_tolerance_allows_overselling(self):
+  self.assertIn("error",simulate_demo_trade({"AAPL":10,"CASH":1},"AAPL","Vender",10.004,"CASH"))
  def test_no_mutation(self):
   self.case("Comprar",100,"CASH")
   self.assertEqual(self.h,{"AAPL":1000,"SPY":2000,"CASH":500})
