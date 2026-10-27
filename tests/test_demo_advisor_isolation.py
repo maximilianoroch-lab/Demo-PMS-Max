@@ -51,6 +51,9 @@ class DemoAdvisorIsolation(unittest.TestCase):
    self.assertIn('_metric.get("'+field+'")',section)
   self.assertIn('st.session_state.pop("demo_fundamental_result",None)',section)
   self.assertNotIn('get_data()',section)
+  self.assertIn('_source_a.startswith("https://")',section)
+  self.assertIn('_source_b.startswith("https://")',section)
+  self.assertIn('"Comparable":("Respaldado" if _verified else "No verificado")',section)
  def test_cross_module_navigation(self):
   code=(ROOT/"app.py").read_text(encoding="utf-8")
   self.assertIn('def _demo_open_ticker(ticker,page):',code)
