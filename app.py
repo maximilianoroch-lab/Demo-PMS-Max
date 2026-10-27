@@ -344,6 +344,48 @@ elif _demo_page=="Comparar":
                             _ticker_b:_fmt_pct(_view.loc[_ticker_b,"Valor USD_num"]/_s["total"])})
         _table(pd.DataFrame(_comparison))
         st.info("Esta comparación utiliza solamente información interna DEMO; no implica una recomendación fundamental o técnica.")
+        st.markdown("#### Comparación fundamental con IA")
+        st.caption("Análisis externo opcional; las posiciones y los pesos provienen exclusivamente de DEMO V5. Los precios del inventario son indicativos y no se usarán como cotizaciones de mercado.")
+        try:
+            _cmp_ai_ready=bool(st.secrets.get("OPENAI_API_KEY",""))
+        except Exception:
+            _cmp_ai_ready=False
+        _pair=(_ticker_a,_ticker_b)
+        if st.session_state.get("demo_fundamental_pair")!=_pair:
+            st.session_state["demo_fundamental_pair"]=_pair
+            st.session_state.pop("demo_fundamental_result",None)
+        if st.button("Comparar fundamentales con IA",key="demo_fundamental_run",disabled=not _cmp_ai_ready):
+            _cmp_app=_p.groupby("Ticker",as_index=False).agg({"Valor USD_num":"sum","Tipo":"first","Clase":"first",
+                "Región directa":"first","Sector":"first","Estado dato":"first"})
+            _cmp_app["Peso_num"]=_cmp_app["Valor USD_num"]/_s["total"]
+            _cmp_app["Región"]=_cmp_app["Región directa"]
+            _cmp_data={"app_feed_v2":_cmp_app,"looker_feed_v2":_p.copy(),
+                       "dashboard_riesgo_v2":pd.DataFrame(),"dashboard_exposicion_v2":pd.DataFrame()}
+            with st.spinner("Consultando fuentes fundamentales…"):
+                st.session_state["demo_fundamental_result"]=compare_companies_structured(
+                    _ticker_a,_ticker_b,_cmp_data,_p,analysis_context={
+                        "scope":"DEMO V5 ficticia; precios indicativos no verificados; no utilizar información de Bersoch"})
+        if not _cmp_ai_ready:
+            st.caption("Requiere OPENAI_API_KEY configurada en los Secrets de esta instancia.")
+        _fundamental=st.session_state.get("demo_fundamental_result")
+        if isinstance(_fundamental,dict):
+            _metrics=_fundamental.get("metrics",[])
+            if isinstance(_metrics,list) and _metrics:
+                _rows=[]
+                for _metric in _metrics:
+                    if not isinstance(_metric,dict):continue
+                    _rows.append({"Indicador":_metric.get("indicator","—"),
+                        _ticker_a:_metric.get("a") if _metric.get("a") is not None else "—",
+                        _ticker_b:_metric.get("b") if _metric.get("b") is not None else "—",
+                        "Unidad":_metric.get("unit",""),
+                        "Comparable":("Sí" if _metric.get("comparable") is True else "No verificado")})
+                if _rows:_table(pd.DataFrame(_rows))
+            for _bullet in (_fundamental.get("bullets") or []):
+                st.markdown("- "+str(_bullet))
+            if _fundamental.get("analysis"):
+                st.markdown(str(_fundamental["analysis"]))
+            st.caption("Verificá fechas, definiciones y fuentes antes de utilizar métricas externas para decidir.")
+
 elif _demo_page=="Simulador":
     st.subheader("Simulador de operación")
     st.caption("Impacto estimado sobre la cartera ficticia V5. No ejecuta operaciones; no incluye comisiones ni deslizamiento.")
