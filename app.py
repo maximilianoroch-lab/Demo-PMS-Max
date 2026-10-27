@@ -363,9 +363,9 @@ elif _demo_page=="Evolución":
     st.caption("Comparación de los dos últimos cierres observados; si faltan fechas intermedias, NO equivale a variación de un día.")
     _top=top15_daily(_p,_asset_history)
     _top["Valor USD"]=_top["Valor USD_num"].map(_fmt_usd)
-    _top["Cambio diario USD"]=_top["Cambio USD"].map(_fmt_usd)
-    _top["Cambio diario %"]=_top["Cambio %"].map(lambda v:shared_fmt_number(v,2)+"%" if pd.notna(v) else "—")
-    _table(_top[["Ticker","Valor USD","Cambio diario USD","Cambio diario %"]])
+    _top["Cambio entre cierres USD"]=_top["Cambio USD"].map(_fmt_usd)
+    _top["Cambio entre cierres %"]=_top["Cambio %"].map(lambda v:shared_fmt_number(v,2)+"%" if pd.notna(v) else "—")
+    _table(_top[["Ticker","Valor USD","Cambio entre cierres USD","Cambio entre cierres %"]])
     if len(_asset_history["Fecha"].unique())<2:
         st.caption("Las variaciones aparecen después del segundo cierre registrado; no se imputan datos históricos inexistentes.")
     if not _top.empty:
