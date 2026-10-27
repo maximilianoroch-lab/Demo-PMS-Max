@@ -48,6 +48,11 @@ class Trades(unittest.TestCase):
   self.assertIn("error",simulate_demo_trade({"AAPL":10,"CASH":1},"AAPL","Comprar",1.004,"CASH"))
  def test_no_tolerance_allows_overselling(self):
   self.assertIn("error",simulate_demo_trade({"AAPL":10,"CASH":1},"AAPL","Vender",10.004,"CASH"))
+ def test_rejects_malformed_numeric_input(self):
+  self.assertIn("error",self.case("Comprar","abc","CASH"))
+ def test_rejects_overflowed_final_position(self):
+  holdings={"AAPL":1e308,"CASH":1e308}
+  self.assertIn("error",simulate_demo_trade(holdings,"AAPL","Comprar",1e308,"Aporte externo"))
  def test_no_mutation(self):
   self.case("Comprar",100,"CASH")
   self.assertEqual(self.h,{"AAPL":1000,"SPY":2000,"CASH":500})
