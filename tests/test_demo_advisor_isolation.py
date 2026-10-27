@@ -40,6 +40,15 @@ class DemoAdvisorIsolation(unittest.TestCase):
   self.assertIn('if _history_symbol and _history_symbol!=_selected:',active)
   self.assertIn('el Asesor IA no recibirá estos indicadores',active)
   self.assertIn('technical_snapshot=_snapshot',active)
+ def test_fundamental_comparison_uses_demo_only(self):
+  code=(ROOT/"app.py").read_text(encoding="utf-8")
+  active=code[code.index('from demo_independent_model import build_independent_model'):code.index('st.caption("Fuente: Base DEMO PMS Max / DEMO_INVENTARIO_V5')]
+  section=active[active.index('elif _demo_page=="Comparar":'):active.index('elif _demo_page=="Simulador":')]
+  self.assertIn('compare_companies_structured(',section)
+  self.assertIn('"app_feed_v2":_cmp_app',section)
+  self.assertIn('"looker_feed_v2":_p.copy()',section)
+  self.assertIn('st.session_state.pop("demo_fundamental_result",None)',section)
+  self.assertNotIn('get_data()',section)
  def test_cross_module_navigation(self):
   code=(ROOT/"app.py").read_text(encoding="utf-8")
   self.assertIn('def _demo_open_ticker(ticker,page):',code)
