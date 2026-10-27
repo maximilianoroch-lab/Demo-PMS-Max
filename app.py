@@ -341,6 +341,9 @@ elif _demo_page=="Evolución":
     _table(_top[["Ticker","Valor USD","Cambio diario USD","Cambio diario %"]])
     if len(_asset_history["Fecha"].unique())<2:
         st.caption("Las variaciones aparecen después del segundo cierre registrado; no se imputan datos históricos inexistentes.")
+    if not _top.empty:
+        _ev_ticker=st.selectbox("Abrir un activo del Top 15",_top["Ticker"].astype(str).tolist(),key="demo_evolution_ticker")
+        st.button("Analizar ticker seleccionado",key="demo_evolution_to_ai",on_click=_demo_open_ticker,args=(_ev_ticker,"Asesor IA"))
 elif _demo_page=="Comparar":
     st.subheader("Comparar activos de DEMO")
     st.caption("Comparación de posiciones, valuación y peso de cartera; los precios son referencias indicativas.")
