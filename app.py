@@ -317,6 +317,8 @@ elif _demo_page=="Riesgo":
     else:
         st.caption("Se incorporarán las principales participaciones con fuente y fecha al revisar el benchmark; no se estiman pesos sin respaldo.")
 elif _demo_page=="Evolución":
+    from pms_movers import show_top10
+    show_top10(st, PORTFOLIO["sheet_id"], _p.get("Ticker", pd.Series(dtype=str)).dropna().tolist(), key="demo")
     from demo_history import load_history,load_asset_history,top15_daily
     _history=load_history()
     _asset_history=load_asset_history()
