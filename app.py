@@ -175,7 +175,19 @@ if _demo_page=="Resumen":
     left,right=st.columns([.84,1.16])
     with left:
         st.subheader("Composición por tipo")
-        _bar(_dm["by_type"],"Tipo",color="#598eb8",height=280)
+        _palette={"Cripto":"#d71920","ETF":"#ffc000","Cedear":"#80c342",
+                  "Bono":"#4472c4","Acción AR":"#8c8c8c"}
+        _summary_types=_dm["by_type"].loc[_dm["by_type"]["Tipo"].isin(_palette)].copy()
+        _summary_types["Peso %"]=_summary_types["Valor USD_num"]/_s["total"]*100
+        _summary_types=_summary_types.sort_values("Peso %")
+        _type_bar=px.bar(_summary_types,x="Peso %",y="Tipo",orientation="h",
+                         color="Tipo",color_discrete_map=_palette,
+                         text=_summary_types["Peso %"].map(lambda x:f"{x:.1f}%".replace(".",",")))
+        _type_bar.update_layout(height=280,showlegend=False,margin=dict(l=5,r=40,t=5,b=26),
+                                xaxis_ticksuffix="%",yaxis_title=None)
+        _type_bar.update_traces(textposition="outside")
+        st.plotly_chart(_type_bar,width="stretch")
+        st.caption("Cinco tipos, sin Cash · porcentajes sobre el patrimonio completo.")
     with right:
         st.subheader("Mayores posiciones")
         _top=_p.groupby("Ticker",as_index=False)["Valor USD_num"].sum().nlargest(12,"Valor USD_num")
@@ -361,6 +373,39 @@ elif _demo_page=="Evolución":
             _fig.update_yaxes(autorange=True,rangemode="tozero")
             st.plotly_chart(_fig,width="stretch")
         st.caption(f"{len(_visible_history)} cierres observados en el período · {len(_history)} en total. No se interpolan fechas sin observación.")
+    st.subheader("Evolución de cinco tipos · USD · sin Cash")
+    # DEMO independiente: sólo se representan activos efectivamente registrados
+    # en data/demo_daily_assets.csv. Nunca se lee el historial de Bersoch real.
+    _category_map={"Cripto":"Cripto","ETF":"ETF","Cedear":"CEDEAR",
+                   "Bono":"Bonos","Acción AR":"Acciones"}
+    _palette_types={"Cripto":"#d71920","ETF":"#ffc000","CEDEAR":"#80c342",
+                    "Bonos":"#4472c4","Acciones":"#8c8c8c"}
+    if not _asset_history.empty:
+        _tick_types=_p[["Ticker","Tipo"]].drop_duplicates("Ticker")
+        _type_history=_asset_history.merge(_tick_types,on="Ticker",how="inner")
+        _type_history["Grupo"]=_type_history["Tipo"].map(_category_map)
+        _type_history=_type_history.loc[_type_history["Grupo"].notna()].copy()
+        _type_history=_type_history.groupby(["Fecha","Grupo"],as_index=False)["Valor USD"].sum()
+        _dates=_type_history["Fecha"].nunique()
+        if _dates>=2:
+            _limit=float(_type_history["Valor USD"].max())
+            import math as _math
+            _axis_top=90_000 if _limit<=90_000 else int(_math.ceil(_limit/50_000)*50_000)
+            _curve=px.line(_type_history,x="Fecha",y="Valor USD",color="Grupo",
+                           markers=True,color_discrete_map=_palette_types,
+                           category_orders={"Grupo":list(_palette_types)},
+                           labels={"Fecha":"Fecha","Valor USD":"Valuación USD"})
+            _curve.update_traces(line=dict(width=2.8),marker=dict(size=5))
+            _curve.update_layout(height=410,margin=dict(l=8,r=18,t=10,b=55),
+                                 hovermode="x unified",legend=dict(orientation="h",y=-0.27,x=0))
+            _curve.update_yaxes(range=[0,_axis_top],tickprefix="US$ ",gridcolor="rgba(180,200,220,0.14)")
+            st.plotly_chart(_curve,width="stretch")
+            st.caption(f"Escala 0–{_fmt_usd(_axis_top)}. DEMO: valuaciones indicativas por cierres registrados, no rentabilidad. "
+                       "La escala supera US$ 90.000 para no recortar los grupos de esta cartera.")
+        else:
+            st.info("Se requieren dos cierres por tipo para trazar curvas de evolución DEMO.")
+    else:
+        st.info("La DEMO todavía no dispone de cierres independientes por activo.")
     st.subheader("Variación entre cierres · principales 15 instrumentos")
     st.caption("Comparación de los dos últimos cierres observados; si faltan fechas intermedias, NO equivale a variación de un día.")
     _top=top15_daily(_p,_asset_history)
