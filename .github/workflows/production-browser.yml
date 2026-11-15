@@ -2,11 +2,13 @@ name: Production browser UI checks
 on:
   push:
     branches: [main]
-    paths: ['tests/prod_browser_smoke.py', '.github/workflows/production-browser.yml']
+    paths: ['app.py', 'demo_history.py', 'tests/prod_browser_smoke.py', '.github/workflows/production-browser.yml']
   workflow_dispatch:
+  schedule:
+    - cron: '10 15 * * 1,4'
 jobs:
   browser-smoke:
-    runs-on: ubuntu-latest
+    runs-on: ubuntu-24.04
     timeout-minutes: 12
     steps:
       - uses: actions/checkout@v4
