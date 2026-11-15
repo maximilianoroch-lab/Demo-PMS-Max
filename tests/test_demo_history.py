@@ -67,4 +67,29 @@ class DemoHistoryTests(unittest.TestCase):
   new_ticker=pd.DataFrame({"Fecha":["2026-11-14","2026-11-14"],"Ticker":["AAPL","SPY"],"Valor USD":[100,1]})
   self.assertTrue(h.has_new_observation(changed,last))
   self.assertTrue(h.has_new_observation(new_ticker,last))
+ def test_identical_fake_snapshots_appear_as_single_observation(self):
+  raw=pd.DataFrame({"Fecha":pd.to_datetime(["2026-10-25","2026-10-26","2026-11-14"]),
+                    "Patrimonio USD":[1264792.16709]*3,"Instrumentos":[65]*3})
+  with tempfile.TemporaryDirectory() as tmp:
+   path=Path(tmp)/"snapshot.csv";raw.to_csv(path,index=False)
+   with patch.object(h,"HISTORY",path):
+    shown=h.load_history()
+  self.assertEqual(len(shown),1)
+  self.assertEqual(shown.iloc[0]["Fecha"],pd.Timestamp("2026-10-25"))
+ def test_changed_then_unchanged_keeps_two_material_observations(self):
+  raw=pd.DataFrame({"Fecha":pd.to_datetime(["2026-10-25","2026-10-26","2026-10-27","2026-10-28"]),
+                    "Patrimonio USD":[100,100,120,120],"Instrumentos":[2,2,2,2]})
+  with tempfile.TemporaryDirectory() as tmp:
+   path=Path(tmp)/"snapshot.csv";raw.to_csv(path,index=False)
+   with patch.object(h,"HISTORY",path):
+    shown=h.load_history()
+  self.assertEqual(shown["Patrimonio USD"].tolist(),[100,120])
+ def test_asset_histories_collapse_only_identical_full_portfolios(self):
+  raw=pd.DataFrame({"Fecha":["2026-10-25","2026-10-25","2026-10-26","2026-10-26","2026-10-27","2026-10-27"],
+                    "Ticker":["AAA","BBB"]*3,"Valor USD":[100,50,100,50,110,50]})
+  with tempfile.TemporaryDirectory() as tmp:
+   path=Path(tmp)/"assets.csv";raw.to_csv(path,index=False)
+   with patch.object(h,"ASSETS",path):
+    shown=h.load_asset_history()
+  self.assertEqual(sorted(shown["Fecha"].dt.strftime("%Y-%m-%d").unique().tolist()),["2026-10-25","2026-10-27"])
 if __name__=="__main__":unittest.main()
