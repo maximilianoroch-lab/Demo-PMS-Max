@@ -11,33 +11,50 @@ TARGETS={
     "DEMO PMS Max":"https://demo-pms-max-mxqteogjttzuufoah5nwnj.streamlit.app/",
 }
 
+def diagnose(page, name):
+    """Emit actionable UI state; never include portfolio values or full page text."""
+    headings = page.locator("h1,h2,h3").all_text_contents()[:12]
+    title = page.title()
+    url = page.url
+    likely_gateway = any(fragment in (title+" "+url).lower()
+                         for fragment in ("sleep", "login", "auth", "sign in", "suspended"))
+    print(f"{name}: page title={title!r}, url={url}, headings={headings}, gateway={likely_gateway}",flush=True)
+    return likely_gateway
+
+
 def inspect(page,name,url):
     page.goto(url,wait_until="domcontentloaded",timeout=60000)
+    main_header=page.get_by_role("heading",name="Resumen",exact=True)
+    # The app is often asleep at the Streamlit Cloud gateway. Try waking it.
     for attempt in range(3):
-        page.wait_for_timeout(1800)
-        wake=page.get_by_text("Yes, get this app back up!",exact=False)
-        if wake.count():
-            wake.first.click(timeout=12000)
-            page.wait_for_timeout(15000)
-            continue
-        if page.get_by_role("heading",name="Resumen",exact=True).count():
+        try:
+            main_header.first.wait_for(timeout=10000)
             break
-        page.wait_for_timeout(10000)
-        if attempt==2:page.reload(wait_until="domcontentloaded",timeout=60000)
-    page.get_by_role("heading",name="Resumen",exact=True).wait_for(timeout=60000)
-    page.get_by_text("Patrimonio total",exact=False).first.wait_for(timeout=30000)
-    print(name+": Resumen and NAV widget visible",flush=True)
-    # Verify sidebar tools without triggering any trading or external AI calls.
+        except Exception:
+            diagnose(page,name)
+            wake=page.get_by_text("Yes, get this app back up!",exact=False)
+            if wake.count():
+                wake.first.click(timeout=10000)
+                page.wait_for_timeout(12000)
+            elif attempt<2:
+                page.reload(wait_until="domcontentloaded",timeout=60000)
+    else:
+        diagnose(page,name)
+        raise RuntimeError("Production UI unavailable or gateway sleeping: Resumen heading never appeared")
+    page.get_by_text("Patrimonio total",exact=False).first.wait_for(timeout=20000)
+    print(name+": Resumen and portfolio widget visible",flush=True)
     for label,expected in [("Comparar Activos","Comparar"),("Simular Compra/Venta","Simulador")]:
         radio=page.get_by_text(label,exact=True)
-        radio.first.click(timeout=20000)
-        page.wait_for_timeout(1800)
-        assert expected.lower() in page.locator("h1").all_text_contents()[-1].lower(),(name,label,page.locator("h1").all_text_contents())
+        if not radio.count():
+            diagnose(page,name)
+            raise RuntimeError("Navigation control missing: "+label)
+        radio.first.click(timeout=12000)
+        page.get_by_role("heading",name=expected,exact=True).first.wait_for(timeout=20000)
         print(name+": "+label+" navigation OK",flush=True)
     button=page.get_by_role("button",name="Asesor IA")
     if button.count():
         button.first.click(timeout=15000)
-        page.get_by_role("heading",name="Asesor IA",exact=True).wait_for(timeout=25000)
+        page.get_by_role("heading",name="Asesor IA",exact=True).first.wait_for(timeout=20000)
         print(name+": Asesor IA navigation OK",flush=True)
     page.screenshot(path="smoke_"+("demo" if "DEMO" in name else "bersoch")+".png",full_page=True)
 
