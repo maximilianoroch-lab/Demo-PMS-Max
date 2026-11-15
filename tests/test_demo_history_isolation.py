@@ -8,7 +8,7 @@ class DemoHistoryIsolationTests(unittest.TestCase):
     def test_demo_rankings_never_consume_legacy_sheet(self):
         app=(ROOT/"app.py").read_text(encoding="utf-8")
         self.assertNotIn('show_top10(st, PORTFOLIO["sheet_id"]', app)
-        self.assertIn("historial antiguo", app)
+        self.assertIn("precios históricos de la base heredada", app)
         self.assertIn('from demo_history import load_history,load_asset_history',app)
     def test_independent_history_is_recorded_from_demo_positions(self):
         code=(ROOT/"demo_history.py").read_text(encoding="utf-8")
