@@ -2,10 +2,10 @@ name: Production browser UI checks
 on:
   push:
     branches: [main]
-    paths: ['app.py', 'demo_history.py', 'tests/prod_browser_smoke.py', '.github/workflows/production-browser.yml']
+    paths: ['tests/prod_browser_smoke.py', '.github/workflows/production-browser.yml']
   workflow_dispatch:
-  schedule:
-    - cron: '10 15 * * 1,4'
+  # This UI probe is only diagnostic until GitHub-hosted Chromium can render Streamlit.
+  # The separate HTTP production smoke remains scheduled and authoritative for reachability.
 jobs:
   browser-smoke:
     runs-on: ubuntu-24.04
