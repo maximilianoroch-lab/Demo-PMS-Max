@@ -49,19 +49,41 @@ def upsert_csv(frame,path,keys):
     merged.to_csv(path,index=False,float_format="%.8f")
     return merged
 
+def material_changes(frame, value_columns, date_column="Fecha", tolerance=0.000001):
+    """Conservar la primera observación y cambios posteriores; no inventar mercado.
+    La serie de archivo permanece intacta: solo se depura la visualización.
+    """
+    if frame is None or frame.empty:
+        return frame
+    frame=frame.sort_values(date_column).copy()
+    values=frame[list(value_columns)].apply(pd.to_numeric,errors="coerce")
+    valid=values.notna().all(axis=1)
+    changed=(values.diff().abs()>tolerance).any(axis=1)
+    keep=valid & (changed | frame.index.to_series().eq(frame.index[0]))
+    return frame.loc[keep].copy()
+
 def load_history():
     if not HISTORY.exists():return pd.DataFrame(columns=["Fecha","Patrimonio USD"])
     frame=pd.read_csv(HISTORY)
     frame["Fecha"]=pd.to_datetime(frame["Fecha"],errors="coerce")
     frame["Patrimonio USD"]=pd.to_numeric(frame["Patrimonio USD"],errors="coerce")
-    return frame.dropna(subset=["Fecha","Patrimonio USD"]).sort_values("Fecha").drop_duplicates("Fecha",keep="last")
+    frame=frame.dropna(subset=["Fecha","Patrimonio USD"]).sort_values("Fecha").drop_duplicates("Fecha",keep="last")
+    return material_changes(frame,["Patrimonio USD","Instrumentos"] if "Instrumentos" in frame else ["Patrimonio USD"])
 
 def load_asset_history():
     if not ASSETS.exists():return pd.DataFrame(columns=["Fecha","Ticker","Valor USD"])
     frame=pd.read_csv(ASSETS)
     frame["Fecha"]=pd.to_datetime(frame["Fecha"],errors="coerce")
     frame["Valor USD"]=pd.to_numeric(frame["Valor USD"],errors="coerce")
-    return frame.dropna(subset=["Fecha","Ticker","Valor USD"]).sort_values("Fecha").drop_duplicates(["Fecha","Ticker"],keep="last")
+    frame=frame.dropna(subset=["Fecha","Ticker","Valor USD"]).sort_values("Fecha").drop_duplicates(["Fecha","Ticker"],keep="last")
+    if frame.empty:return frame
+    # Comparar vectores completos de valuación y cobertura de activos por fecha.
+    # Un día archivado sin ningún cambio NO es otro cierre de mercado.
+    matrix=frame.pivot(index="Fecha",columns="Ticker",values="Valor USD").sort_index()
+    changed=matrix.ne(matrix.shift()).any(axis=1)
+    changed.iloc[0]=True
+    dates=matrix.index[changed]
+    return frame.loc[frame["Fecha"].isin(dates)].copy()
 
 def top15_daily(positions,history):
     current=positions.groupby("Ticker",as_index=False)["Valor USD_num"].sum().nlargest(15,"Valor USD_num")
