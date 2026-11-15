@@ -57,4 +57,14 @@ class DemoHistoryTests(unittest.TestCase):
   model={"positions":portfolio,"summary":{"total":300,"positions_count":2}}
   total,assets=h.snapshot_frames(model,"2026-10-24")
   self.assertAlmostEqual(total.iloc[0]["Patrimonio USD"],assets["Valor USD"].sum())
+ def test_no_new_snapshot_if_synthetic_prices_unchanged(self):
+  last=pd.DataFrame({"Fecha":["2026-11-12","2026-11-12"],"Ticker":["AAPL","SPY"],"Valor USD":[100,200]})
+  today=pd.DataFrame({"Fecha":["2026-11-14","2026-11-14"],"Ticker":["AAPL","SPY"],"Valor USD":[100,200]})
+  self.assertFalse(h.has_new_observation(today,last))
+ def test_changed_value_or_new_ticker_requires_snapshot(self):
+  last=pd.DataFrame({"Fecha":["2026-11-12"],"Ticker":["AAPL"],"Valor USD":[100]})
+  changed=pd.DataFrame({"Fecha":["2026-11-14"],"Ticker":["AAPL"],"Valor USD":[100.5]})
+  new_ticker=pd.DataFrame({"Fecha":["2026-11-14","2026-11-14"],"Ticker":["AAPL","SPY"],"Valor USD":[100,1]})
+  self.assertTrue(h.has_new_observation(changed,last))
+  self.assertTrue(h.has_new_observation(new_ticker,last))
 if __name__=="__main__":unittest.main()
