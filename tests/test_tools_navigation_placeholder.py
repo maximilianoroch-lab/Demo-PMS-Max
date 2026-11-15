@@ -1,10 +1,8 @@
-import ast
 import pathlib
 import unittest
 
 FILE=pathlib.Path(__file__).resolve().parents[1]/"app.py"
 SOURCE=FILE.read_text(encoding="utf-8")
-ACTIVE=SOURCE.split("\nst.stop()\n",1)[0] if False else SOURCE
 # Access gate has an earlier stop; identify the independent dashboard's terminal stop.
 DEMO_ACTIVE=SOURCE[:SOURCE.index('st.caption("Fuente: Base DEMO PMS Max / DEMO_INVENTARIO_V5')+250]
 
