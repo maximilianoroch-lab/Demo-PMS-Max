@@ -329,8 +329,8 @@ elif _demo_page=="Riesgo":
     else:
         st.caption("Se incorporarán las principales participaciones con fuente y fecha al revisar el benchmark; no se estiman pesos sin respaldo.")
 elif _demo_page=="Evolución":
-    from pms_movers import show_top10
-    show_top10(st, PORTFOLIO["sheet_id"], _p.get("Ticker", pd.Series(dtype=str)).dropna().tolist(), key="demo")
+    st.subheader("Top 10 subas y bajas · cotización ARS")
+    st.info("Pendiente de cierres diarios ARS independientes para DEMO V5. Los precios históricos de la base heredada no se usan: provienen de una copia antigua de Bersoch. Hasta disponer de una serie validada no se calculan variaciones ni se muestra un ranking ficticio como si fuera observado.")
     from demo_history import load_history,load_asset_history,top15_daily
     _history=load_history()
     _asset_history=load_asset_history()
