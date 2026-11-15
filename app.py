@@ -292,6 +292,26 @@ elif _demo_page=="Custodia":
     _cust_tbl=_dm["by_custodian"].sort_values("Valor USD_num",ascending=False).copy()
     _cust_tbl["Valor USD"]=_cust_tbl["Valor USD_num"].map(_fmt_usd)
     _cust_tbl["Peso"]=_cust_tbl["Valor USD_num"].div(_s["total"]).map(_fmt_pct)
+    st.markdown("#### Explorar posiciones por custodio y cuenta")
+    _c1,_c2=st.columns(2)
+    _select_cust=_c1.selectbox("Custodio",["Todos"]+sorted(_p["Custodio"].dropna().unique().tolist()),key="demo_custody_select")
+    _cust_rows=_p.copy() if _select_cust=="Todos" else _p.loc[_p["Custodio"]==_select_cust].copy()
+    _select_acc=_c2.selectbox("Cuenta",["Todas"]+sorted(_cust_rows["Cuenta"].dropna().unique().tolist()),key="demo_custody_account")
+    if _select_acc!="Todas":
+        _cust_rows=_cust_rows.loc[_cust_rows["Cuenta"]==_select_acc]
+    _focus_tickers=sorted(_cust_rows["Ticker"].dropna().astype(str).unique().tolist())
+    if _focus_tickers:
+        _selected_cust_ticker=st.selectbox("Ticker",_focus_tickers,key="demo_custody_ticker")
+        _cust_rows=_cust_rows.loc[_cust_rows["Ticker"]==_selected_cust_ticker]
+        _value=float(_cust_rows["Valor USD_num"].sum())
+        st.caption("Valor de la posición seleccionada: "+_fmt_usd(_value)+
+                   " · Peso en cartera: "+_fmt_pct(_value/_s["total"]))
+        _ca,_cb,_cc=st.columns(3)
+        _ca.button("Asesor IA",key="demo_custody_ia",on_click=_demo_open_ticker,args=(_selected_cust_ticker,"Asesor IA"))
+        _cb.button("Comparar",key="demo_custody_compare",on_click=_demo_open_ticker,args=(_selected_cust_ticker,"Comparar"))
+        _cc.button("Simulador",key="demo_custody_sim",on_click=_demo_open_ticker,args=(_selected_cust_ticker,"Simulador"))
+    else:
+        st.info("No hay activos para los filtros seleccionados.")
     _table(_cust_tbl[["Custodio","Valor USD","Peso"]])
 elif _demo_page=="Riesgo":
     _weights=_p.groupby("Ticker")["Valor USD_num"].sum().div(_s["total"]).sort_values(ascending=False)
