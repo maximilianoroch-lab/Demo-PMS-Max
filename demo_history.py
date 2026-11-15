@@ -24,6 +24,23 @@ def snapshot_frames(model, day=None):
         raise ValueError("Snapshot DEMO con patrimonio inválido")
     return overview,assets
 
+def has_new_observation(assets, previous, tolerance=0.000001):
+    """No registrar otro día si se repite idéntica valuación por ticker."""
+    if previous is None or previous.empty:
+        return True
+    required={"Ticker","Valor USD"}
+    if not required.issubset(assets.columns) or not required.issubset(previous.columns):
+        raise ValueError("Comparación DEMO sin ticker o valuación")
+    old=previous.copy()
+    if "Fecha" in old:
+        old["Fecha"]=pd.to_datetime(old["Fecha"],errors="coerce")
+        old=old.loc[old["Fecha"]==old["Fecha"].max()]
+    a=assets.groupby("Ticker")["Valor USD"].sum().sort_index().astype(float)
+    b=old.groupby("Ticker")["Valor USD"].sum().sort_index().astype(float)
+    if not a.index.equals(b.index):
+        return True
+    return bool((a-b).abs().gt(tolerance).any())
+
 def upsert_csv(frame,path,keys):
     old=pd.read_csv(path) if path.exists() else pd.DataFrame(columns=frame.columns)
     merged=pd.concat([old,frame],ignore_index=True)
@@ -68,6 +85,10 @@ if __name__=="__main__":
     from demo_independent_model import build_independent_model
     model=build_independent_model()
     day,assets=snapshot_frames(model)
-    upsert_csv(day,HISTORY,["Fecha"])
-    upsert_csv(assets,ASSETS,["Fecha","Ticker"])
-    print("DEMO snapshot",day.iloc[0]["Fecha"],day.iloc[0]["Patrimonio USD"],len(assets))
+    historical_assets=pd.read_csv(ASSETS) if ASSETS.exists() else pd.DataFrame()
+    if not has_new_observation(assets,historical_assets):
+        print("DEMO V5 sin cambio de valuación/posiciones: no se registra un nuevo cierre simulado.")
+    else:
+        upsert_csv(day,HISTORY,["Fecha"])
+        upsert_csv(assets,ASSETS,["Fecha","Ticker"])
+        print("DEMO snapshot indicativo (cambio efectivo)",day.iloc[0]["Fecha"],day.iloc[0]["Patrimonio USD"],len(assets))
