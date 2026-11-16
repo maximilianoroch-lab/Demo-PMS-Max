@@ -4,6 +4,7 @@ This source is independent from the legacy copied Google Sheet history.
 No market change or return is claimed without dated market-price evidence.
 """
 from pathlib import Path
+import math
 import pandas as pd
 
 REQUIRED = {
@@ -21,8 +22,20 @@ def validate_price_history(frame, allowed_tickers=None):
     if missing:
         raise ValueError("Faltan columnas de procedencia: " + ", ".join(sorted(missing)))
     result = frame.copy()
-    for col in ("Ticker", "Moneda", "Fuente", "Referencia", "Origen_cartera"):
+    provenance_columns = ("Ticker", "Moneda", "Fuente", "Referencia", "Origen_cartera")
+    # astype(str) turns pd.NA/None into apparent values like 'nan' or 'None'.
+    # Reject them BEFORE and AFTER normalization, never silently certify them.
+    if result[list(provenance_columns)].isna().any().any():
+        raise ValueError("Cotización DEMO sin ticker o trazabilidad")
+    for col in provenance_columns:
         result[col] = result[col].astype(str).str.strip()
+    invalid_labels = {"", "nan", "none", "null", "n/a", "undefined"}
+    if result[list(provenance_columns)].apply(
+        lambda column: column.str.lower().isin(invalid_labels)
+    ).any().any():
+        raise ValueError("Cotización DEMO sin ticker o trazabilidad")
+    if not result["Referencia"].str.startswith("https://").all():
+        raise ValueError("Referencia de cotización DEMO debe usar URL HTTPS verificable")
     result["Ticker"] = result["Ticker"].str.upper()
     result["Moneda"] = result["Moneda"].str.upper()
     result["Origen_cartera"] = result["Origen_cartera"].str.upper()
@@ -34,14 +47,19 @@ def validate_price_history(frame, allowed_tickers=None):
         raise ValueError("Origen DEMO V5 no reconocido")
     if not result["Moneda"].isin(ALLOWED_CURRENCIES).all():
         raise ValueError("Moneda no admitida")
-    result["Fecha"] = pd.to_datetime(result["Fecha"], format="%Y-%m-%d", errors="coerce")
-    result["Fecha_fuente"] = pd.to_datetime(result["Fecha_fuente"], format="%Y-%m-%d", errors="coerce")
+    for field in ("Fecha", "Fecha_fuente"):
+        original = result[field]
+        if original.isna().any() or not original.astype(str).str.fullmatch(r"\\d{4}-\\d{2}-\\d{2}").all():
+            raise ValueError("Fecha histórica inválida; usar YYYY-MM-DD")
+        result[field] = pd.to_datetime(original, format="%Y-%m-%d", errors="coerce")
     if result[["Fecha", "Fecha_fuente"]].isna().any().any():
         raise ValueError("Fecha histórica inválida; usar YYYY-MM-DD")
     if not result["Fecha_fuente"].eq(result["Fecha"]).all():
         raise ValueError("Fecha de la cotización y de su fuente no coinciden")
+    if (result["Fecha"] > pd.Timestamp.today().normalize()).any():
+        raise ValueError("Fecha histórica futura no es una cotización observada")
     result["Precio"] = pd.to_numeric(result["Precio"], errors="coerce")
-    if result["Precio"].isna().any() or not result["Precio"].gt(0).all():
+    if result["Precio"].isna().any() or not result["Precio"].map(math.isfinite).all() or not result["Precio"].gt(0).all():
         raise ValueError("Precio unitario histórico inválido")
     if result.duplicated(["Fecha", "Ticker", "Moneda"]).any():
         raise ValueError("Cotizaciones históricas duplicadas para ticker/fecha/moneda")
