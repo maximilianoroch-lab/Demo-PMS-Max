@@ -43,6 +43,31 @@ class DemoPriceHistoryGateTests(unittest.TestCase):
         x=prices();x.loc[0,"Precio"]="0"
         with self.assertRaisesRegex(ValueError,"inválido"):
             validate_price_history(x)
+
+    def test_missing_provenance_values_cannot_be_stringified(self):
+        for field in ("Ticker", "Moneda", "Fuente", "Referencia", "Origen_cartera"):
+            for bad in (None, float("nan"), "nan", "None", "null", "  "):
+                with self.subTest(field=field, bad=str(bad)):
+                    x=prices();x.loc[0,field]=bad
+                    with self.assertRaises(ValueError):
+                        validate_price_history(x)
+    def test_reference_requires_https(self):
+        for bad in ("not-a-link", "http://example.org/price", "source_pending"):
+            x=prices();x.loc[0,"Referencia"]=bad
+            with self.assertRaisesRegex(ValueError,"HTTPS"):
+                validate_price_history(x)
+    def test_reject_infinite_and_nan_prices(self):
+        for bad in ("inf", "-inf", float("inf"), float("nan")):
+            with self.subTest(price=str(bad)):
+                x=prices();x.loc[0,"Precio"]=bad
+                with self.assertRaisesRegex(ValueError,"inválido"):
+                    validate_price_history(x)
+    def test_reject_noncanonical_or_future_dates(self):
+        for bad in ("2026-1-2", "01/02/2026", "2026/11/12", "2099-01-01"):
+            with self.subTest(date=bad):
+                x=prices();x.loc[0,"Fecha"]=bad;x.loc[0,"Fecha_fuente"]=bad
+                with self.assertRaises(ValueError):
+                    validate_price_history(x)
     def test_reject_single_day(self):
         with self.assertRaisesRegex(ValueError,"dos fechas"):
             rank_two_verified_dates(prices().iloc[[0]])
