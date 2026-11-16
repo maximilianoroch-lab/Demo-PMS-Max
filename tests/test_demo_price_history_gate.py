@@ -57,7 +57,7 @@ class DemoPriceHistoryGateTests(unittest.TestCase):
             with self.assertRaisesRegex(ValueError,"HTTPS"):
                 validate_price_history(x)
     def test_reject_infinite_and_nan_prices(self):
-        for bad in ("inf", "-inf", float("inf"), float("nan")):
+        for bad in ("inf", "-inf", "Infinity", "nan"):
             with self.subTest(price=str(bad)):
                 x=prices();x.loc[0,"Precio"]=bad
                 with self.assertRaisesRegex(ValueError,"inválido"):
