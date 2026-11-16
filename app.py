@@ -90,13 +90,15 @@ def _bar(df,label,limit=None,color="#79bff2",height=None):
 def _table(df):
     return render_financial_table(st,df)
 
+DEMO_TOOLS_PLACEHOLDER = "Elegir herramienta"
+
 def _demo_dashboard_changed():
     st.session_state["demo_current_page"]=st.session_state["demo_dashboard_nav"]
-    st.session_state["demo_tools_nav"]="—"
+    st.session_state["demo_tools_nav"]=DEMO_TOOLS_PLACEHOLDER
 
 def _demo_tools_changed():
     selected=st.session_state["demo_tools_nav"]
-    if selected!="—":
+    if selected!=DEMO_TOOLS_PLACEHOLDER:
         st.session_state["demo_current_page"]={"Comparar Activos":"Comparar","Simular Compra/Venta":"Simulador"}[selected]
     else:
         st.session_state["demo_current_page"]=st.session_state.get("demo_dashboard_nav","Resumen")
@@ -116,7 +118,7 @@ def _demo_active_ticker_changed():
 def _demo_open_ticker(ticker,page):
     st.session_state["demo_sidebar_ticker"]=ticker
     st.session_state["demo_current_page"]=page
-    st.session_state["demo_tools_nav"]={"Comparar":"Comparar Activos","Simulador":"Simular Compra/Venta"}.get(page,"—")
+    st.session_state["demo_tools_nav"]={"Comparar":"Comparar Activos","Simulador":"Simular Compra/Venta"}.get(page,DEMO_TOOLS_PLACEHOLDER)
     st.session_state.pop("demo_advisor_ticker",None)
     st.session_state.pop("demo_advisor_answer",None)
     st.session_state.pop("demo_technical_loaded_symbol",None)
@@ -128,7 +130,7 @@ def _demo_open_ticker(ticker,page):
         st.session_state["demo_sim_ticker"]=ticker
 
 def _demo_ai_changed():
-    st.session_state["demo_tools_nav"]="—"
+    st.session_state["demo_tools_nav"]=DEMO_TOOLS_PLACEHOLDER
     st.session_state["demo_current_page"]="Asesor IA"
 
 with st.sidebar:
@@ -138,7 +140,7 @@ with st.sidebar:
     st.radio("Dashboard",["Resumen","Diversificación","Evolución","Riesgo","Custodia","Posiciones"],
              key="demo_dashboard_nav",label_visibility="collapsed",on_change=_demo_dashboard_changed)
     st.markdown("### Herramientas")
-    st.radio("Herramientas",["—","Comparar Activos","Simular Compra/Venta"],
+    st.radio("Herramientas",[DEMO_TOOLS_PLACEHOLDER,"Comparar Activos","Simular Compra/Venta"],
              key="demo_tools_nav",label_visibility="collapsed",on_change=_demo_tools_changed)
     st.markdown("### IA")
     st.button("Asesor IA",use_container_width=True,key="demo_ia_nav",on_click=_demo_ai_changed)
