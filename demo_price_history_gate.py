@@ -49,7 +49,7 @@ def validate_price_history(frame, allowed_tickers=None):
         raise ValueError("Moneda no admitida")
     for field in ("Fecha", "Fecha_fuente"):
         original = result[field]
-        if original.isna().any() or not original.astype(str).str.fullmatch(r"\\d{4}-\\d{2}-\\d{2}").all():
+        if original.isna().any() or not original.astype(str).str.fullmatch(r"\d{4}-\d{2}-\d{2}").all():
             raise ValueError("Fecha histórica inválida; usar YYYY-MM-DD")
         result[field] = pd.to_datetime(original, format="%Y-%m-%d", errors="coerce")
     if result[["Fecha", "Fecha_fuente"]].isna().any().any():
